@@ -5,7 +5,7 @@
 %{
 #include <stdio.h>
 #include "header.h" // Fichero de cabeceras del proyecto
-
+#include "libtds.h"
 
 void yyerror(const char *s);
 extern int yylex();
@@ -39,6 +39,9 @@ extern char *yytext;
 %token CORA_ CORC_           /* [ ] */
 %token LLAVEA_ LLAVEC_       /* { } */
 %token PUNTOCOMA_ COMA_     /* ; , */
+
+%type <cent> tipoSimp
+
 
 //verbose para errores
 %define parse.error verbose
