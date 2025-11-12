@@ -13,6 +13,11 @@ extern int yylineno;
 extern char *yytext;
 %}
 
+%union{
+        char *ident;
+        int cent;
+}
+
 /* --- DECLARACIÓN DE TOKENS --- */
 
 /* Palabras Reservadas */
@@ -20,7 +25,8 @@ extern char *yytext;
 %token READ_ PRINT_ IF_ ELSE_ FOR_
 
 /* Identificadores y Constantes */
-%token ID_ CTE_
+%token <ident> ID_ 
+%token <cent> CTE_
 
 /* Operadores Aritméticos, Lógicos y Relacionales */
 %token MAS_ MENOS_ POR_ DIV_
@@ -51,9 +57,14 @@ decla:     declaVar
          | declaFunc
          ;
 
-declaVar:  tipoSimp ID_ PUNTOCOMA_
+declaVar:  tipoSimp ID_ PUNTOCOMA_ 
+        {
+                if (! insTdS($2, VARIABLE, T_ENTERO, 0, 0, 0)){
+                        yyerror("Identificador repetido");
+                }
+        }
          | tipoSimp ID_ ASIG_ const PUNTOCOMA_
-         | tipoSimp ID_ CORA_ CTE_ CORC_ PUNTOCOMA_
+         | tipoSimp ID_ CORA_ CTE_ CORC_ PUNTOCOMA_ 
          ;
 
 const:     CTE_
@@ -61,8 +72,8 @@ const:     CTE_
          | FALSE_
          ;
 
-tipoSimp:  INT_
-         | BOOL_
+tipoSimp:  INT_ {$$ = T_ENTERO;}
+         | BOOL_ {$$ = T_LOGICO;}
          ;
 
 declaFunc: tipoSimp ID_ PARA_ paramForm PARC_ bloque
