@@ -58,7 +58,12 @@ comentario  "//".*
 ";"          { retornar(PUNTOCOMA_); }
 ","          { retornar(COMA_); }
 {id}         { yylval.ident = strdup(yytext); retornar(ID_); }
-{real}        { retornar(CTE_); }
+{real}          { 
+                    //truncar a entero
+                    double val = strtod(yytext, NULL);
+                    yylval.cent = (int)val;//casting a entero 
+                    retornar(CTE_);
+                }
 {entero}        { yylval.cent = atoi(yytext); retornar(CTE_); }
 .            { 
                 if (verbosidad) ECHO;

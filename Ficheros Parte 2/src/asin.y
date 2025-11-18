@@ -11,11 +11,18 @@ void yyerror(const char *s);
 extern int yylex();
 extern int yylineno;
 extern char *yytext;
+
+//estructura para atributos de expresiones
+typedef struct {
+        int tipo;
+        int cent;
+} ATRIBUTO
 %}
 
 %union{
         char *ident;
         int cent;
+        ATRIBUTO attr;
 }
 
 /* --- DECLARACIÓN DE TOKENS --- */
@@ -40,7 +47,10 @@ extern char *yytext;
 %token LLAVEA_ LLAVEC_       /* { } */
 %token PUNTOCOMA_ COMA_     /* ; , */
 
+//tipos para no terminales
 %type <cent> tipoSimp
+%type <attr> expre const expreLogic expreIgual expreRel expreAd expreMul expreUna expreSufi expreOP
+%type <cent> declaFunc
 
 
 //verbose para errores
@@ -49,7 +59,12 @@ extern char *yytext;
 %%
 /* --- REGLAS DE LA GRAMATICA --- */
 
-programa: listDecla
+programa:{niv = 0; dvar = 0/*doy valor a niv y dvar inicial para cuando lo usemos*/} listDecla{
+                SIMB sim_main = obtTdS("main");
+                if (sim_main.tipo == T_ERROR || sim_main.categoria != FUNCION) {
+                    yyerror("Debe existir una función 'main'");
+                }    
+        }
         ;
 
 listDecla: decla
@@ -62,17 +77,55 @@ decla:     declaVar
 
 declaVar:  tipoSimp ID_ PUNTOCOMA_ 
         {
-                if (! insTdS($2, VARIABLE, T_ENTERO, 0, 0, 0)){
+                int tipo = $1;
+                int talla = 1;//como es un tipo simple = 1
+                if (! insTdS($2, VARIABLE, tipo, niv, dvar, -1)){
                         yyerror("Identificador repetido");
+                } else{
+                        dvar += talla;
                 }
+                
         }
          | tipoSimp ID_ ASIG_ const PUNTOCOMA_
+        {
+            // declaVar: tipoSimp ID_ ASIG_ const PUNTOCOMA_ (Variable Simple Inicializada)
+            int tipo = $1;
+            int talla = 1;
+
+            if (tipo != $4.tipo) {
+                yyerror("Incompatibilidad de tipos en la inicialización de variable");
+            } else if (! insTdS($2, VARIABLE, tipo, niv, dvar, -1)){
+                yyerror("Identificador repetido");
+            } else{
+                dvar += talla;
+            }
+        }
          | tipoSimp ID_ CORA_ CTE_ CORC_ PUNTOCOMA_ 
+        {
+            int tipo_elem = $1;
+            int numelem = $4;//numero de elementos del array
+
+            if (numelem <= 0) {
+                yyerror("Talla inapropiada del array (debe ser positiva)");
+                numelem = 0;
+            }
+            
+            if (numelem > 0) {
+                 ref = insTdA(tipo_elem, numelem); // Guarda info del array en TdA
+            }
+            
+            if ( ! insTdS($2, VARIABLE, T_ARRAY, niv, dvar, ref)) { 
+                yyerror ("Identificador repetido");
+            } else{
+                dvar += numelem;
+            }
+            
+        }
          ;
 
-const:     CTE_
-         | TRUE_
-         | FALSE_
+const:     CTE_{$$.tipo = T_ENTERO; $$.cent = $1;}
+         | TRUE_{$$.tipo = T_LOGICO; $$.cent = 1;}
+         | FALSE_{$$.tipo = T_ENTERO; $$.cent = 0;}
          ;
 
 tipoSimp:  INT_ {$$ = T_ENTERO;}
