@@ -47,8 +47,9 @@ int ref;    // referencia para arrays
 
 //tipos para no terminales
 %type <cent> tipoSimp
-%type <attr> expre const expreLogic expreIgual expreRel expreAd expreMul expreUna expreSufi expreOP
+%type <cent> expre expreLogic expreIgual expreRel expreAd expreMul expreUna expreSufi expreOP
 %type <cent> declaFunc
+%type <attr> const
 
 
 //verbose para errores
@@ -181,45 +182,87 @@ expreOP:   /* epsilon */
 expre:     expreLogic
          | ID_ ASIG_ expre {
             if (obtTdS($1).t == T_ERROR) { //Si no está declarada
-                yyerror("Variable no declarada");
+                yyerror("Objeto no declarado");
             }
         }
          | ID_ CORA_ expre CORC_ ASIG_ expre {
             if (obtTdS($1).t == T_ERROR) { //Si no está declarada
-                yyerror("Variable no declarada");
+                yyerror("Objeto no declarado");
             }
         }
          ;
 
-expreLogic: expreIgual
+expreLogic: expreIgual {$$ = $1;}
           | expreLogic opLogic expreIgual
+          {
+            if($2 != T_LOGICO || $4 != T_LOGICO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_LOGICO;
+            }
+         }
           ;
 
-expreIgual: expreRel
-          | expreIgual opIgual expreRel
+expreIgual: expreRel {$$ = $1;}
+          | expreIgual opIgual expreRel 
+          {
+            if($2 != T_LOGICO || $4 != T_LOGICO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_LOGICO;
+            }
+         }
           ;
 
-expreRel:  expreAd
-         | expreRel opRel expreAd
+expreRel:  expreAd {$$ = $1;}
+         | expreRel opRel expreAd 
+         {
+            if($2 != T_LOGICO || $4 != T_LOGICO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_LOGICO;
+            }
+         }
          ;
 
-expreAd:   expreMul
-         | expreAd opAd expreMul
+expreAd:   expreMul {$$ = $1;}
+         | expreAd opAd expreMul 
+         {
+            if($2 != T_ENTERO || $4 != T_ENTERO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_ENTERO;
+            }
+        }
          ;
 
-expreMul:  expreUna
-         | expreMul opMul expreUna
+expreMul:  expreUna {$$ = $1;}
+         | expreMul opMul expreUna 
+         {
+            if($2 != T_ENTERO || $4 != T_ENTERO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_ENTERO;
+            }
+        }
          ;
 
-expreUna:  expreSufi
-         | opUna expreUna
+expreUna:  expreSufi {$$ = $1;}
+         | opUna expreUna 
+         {
+            if($2 != T_LOGICO){
+                yyerror("Error de tipos en la asignacion");
+            }else{
+                $$ = T_LOGICO;
+            } //REVISAR
+        }
          ;
 
-expreSufi: const
-         | PARA_ expre PARC_
-         | ID_
-         | ID_ CORA_ expre CORC_
-         | ID_ PARA_ paramAct PARC_
+expreSufi: const {$$ = $1.tipo;}
+         | PARA_ expre PARC_ {$$ = $2;}
+         | ID_ {$$ = obtTdS($1).t;}
+         | ID_ CORA_ expre CORC_ {$$ = obtTdS($1).t;}
+         | ID_ PARA_ paramAct PARC_ {$$ = obtTdS($1).t;}
          ;
 
 paramAct:  /* epsilon */
