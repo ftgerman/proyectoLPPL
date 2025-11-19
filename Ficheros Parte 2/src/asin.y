@@ -179,8 +179,16 @@ expreOP:   /* epsilon */
          ;
 
 expre:     expreLogic
-         | ID_ ASIG_ expre
-         | ID_ CORA_ expre CORC_ ASIG_ expre
+         | ID_ ASIG_ expre {
+            if (obtTds($1).t == T_ERROR) {
+                yyerror("Variable no declarada");
+            }
+        }
+         | ID_ CORA_ expre CORC_ ASIG_ expre {
+            if (obtTds($1).t == T_ERROR) {
+                yyerror("Variable no declarada");
+            }
+        }
          ;
 
 expreLogic: expreIgual
