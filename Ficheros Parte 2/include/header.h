@@ -23,4 +23,10 @@ extern int verbosidad;                   /* Flag si se desea una traza       */
 extern int numErrores;              /* Contador del numero de errores        */
 
 #endif  /* _HEADER_H */
+
+//estructura para atributos de expresiones
+typedef struct atributo{
+        int tipo;
+        int cent;
+} ATRIBUTO;
 /*****************************************************************************/

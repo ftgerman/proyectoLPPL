@@ -12,11 +12,9 @@ extern int yylex();
 extern int yylineno;
 extern char *yytext;
 
-//estructura para atributos de expresiones
-typedef struct {
-        int tipo;
-        int cent;
-} ATRIBUTO
+int ref;    // referencia para arrays
+
+
 %}
 
 %union{
@@ -59,9 +57,10 @@ typedef struct {
 %%
 /* --- REGLAS DE LA GRAMATICA --- */
 
-programa:{niv = 0; dvar = 0/*doy valor a niv y dvar inicial para cuando lo usemos*/} listDecla{
+programa:{niv = 0; cargaContexto(niv); dvar = 0;/*doy valor a niv y dvar inicial para cuando lo usemos*/} listDecla{
+                
                 SIMB sim_main = obtTdS("main");
-                if (sim_main.tipo == T_ERROR || sim_main.categoria != FUNCION) {
+                if (sim_main.t == T_ERROR || sim_main.t != FUNCION) {
                     yyerror("Debe existir una función 'main'");
                 }    
         }

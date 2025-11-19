@@ -991,16 +991,21 @@ YY_RULE_SETUP
 case 37:
 YY_RULE_SETUP
 #line 61 "src/alex.l"
-{ retornar(CTE_); }
+{ 
+                    //truncar a entero
+                    double val = strtod(yytext, NULL);
+                    yylval.cent = (int)val;//casting a entero 
+                    retornar(CTE_);
+                }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 62 "src/alex.l"
+#line 67 "src/alex.l"
 { yylval.cent = atoi(yytext); retornar(CTE_); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 63 "src/alex.l"
+#line 68 "src/alex.l"
 { 
                 if (verbosidad) ECHO;
                 char msg[100];
@@ -1010,10 +1015,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 69 "src/alex.l"
+#line 74 "src/alex.l"
 ECHO;
 	YY_BREAK
-#line 1017 "alex.c"
+#line 1022 "alex.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1989,5 +1994,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 69 "src/alex.l"
+#line 74 "src/alex.l"
 
