@@ -180,12 +180,12 @@ expreOP:   /* epsilon */
 
 expre:     expreLogic
          | ID_ ASIG_ expre {
-            if (obtTds($1).t == T_ERROR) {
+            if (obtTdS($1).t == T_ERROR) { //Si no está declarada
                 yyerror("Variable no declarada");
             }
         }
          | ID_ CORA_ expre CORC_ ASIG_ expre {
-            if (obtTds($1).t == T_ERROR) {
+            if (obtTdS($1).t == T_ERROR) { //Si no está declarada
                 yyerror("Variable no declarada");
             }
         }
