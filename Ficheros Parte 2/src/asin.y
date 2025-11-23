@@ -48,8 +48,9 @@ int ref;    // referencia para arrays
 //tipos para no terminales
 %type <cent> tipoSimp
 %type <cent> expre expreLogic expreIgual expreRel expreAd expreMul expreUna expreSufi expreOP
+%type <cent> opLogic opIgual opRel opAd opMul opUna
 %type <cent> declaFunc
-%type <attr> const
+%type <attr> const  
 
 
 //verbose para errores
@@ -181,43 +182,65 @@ expreOP:   /* epsilon */
 
 expre:     expreLogic
          | ID_ ASIG_ expre {
-            if (obtTdS($1).t == T_ERROR) { //Si no está declarada
+            SIMB sim = obtTdS($1);
+            if (sim.t == T_ERROR) {
                 yyerror("Objeto no declarado");
+                $$ = T_ERROR; 
+            } else if (sim.t != $3) {
+                yyerror("Error: Tipos incompatibles en la asignación");
+                $$ = T_ERROR;
+            } else {
+                $$ = sim.t;
             }
         }
          | ID_ CORA_ expre CORC_ ASIG_ expre {
-            if (obtTdS($1).t == T_ERROR) { //Si no está declarada
+            SIMB sim = obtTdS($1);
+            if (sim.t == T_ERROR) {
                 yyerror("Objeto no declarado");
+                $$ = T_ERROR;
+            } else {
+                // 1. Validar que el índice sea entero
+                if ($3 != T_ENTERO) {
+                    yyerror("El índice del array debe ser entero");
+                }
+
+                // 2. Obtener el tipo real del elemento del array
+                DIM infoArray = obtTdA(sim.ref);
+                
+                // 3. Validar que lo que asignamos coincida con lo que guarda el array
+                if (infoArray.telem != $6) {
+                    yyerror("Error: Tipos incompatibles en la asignación al array");
+                }
+                $$ = $6; 
             }
         }
-         ;
-
+        ;
 expreLogic: expreIgual {$$ = $1;}
           | expreLogic opLogic expreIgual
           {
-            if($2 != T_LOGICO || $4 != T_LOGICO){
-                yyerror("Error de tipos en la asignacion");
-            }else{
-                $$ = T_LOGICO;
-            }
+            // opLogic = && o ||
+            if($1 != T_LOGICO || $3 != T_LOGICO) yyerror("Error de tipos en la asignacion");
+                
+            $$ = T_LOGICO;
          }
           ;
 
 expreIgual: expreRel {$$ = $1;}
           | expreIgual opIgual expreRel 
           {
-            if($2 != T_LOGICO || $4 != T_LOGICO){
-                yyerror("Error de tipos en la asignacion");
-            }else{
-                $$ = T_LOGICO;
+            // if($2 != T_LOGICO || $4 != T_LOGICO){
+            // no tienen porque ser logicos, pueden ser enteros. Lo importante es que sean del mismo tipo.
+
+            if($1 != $3) yyerror("Error: Comparación de tipos distintos");
+            $$ = T_LOGICO;
+
             }
-         }
           ;
 
 expreRel:  expreAd {$$ = $1;}
          | expreRel opRel expreAd 
-         {
-            if($2 != T_LOGICO || $4 != T_LOGICO){
+         {  
+            if($1 != T_LOGICO || $3 != T_LOGICO){
                 yyerror("Error de tipos en la asignacion");
             }else{
                 $$ = T_LOGICO;
@@ -228,41 +251,71 @@ expreRel:  expreAd {$$ = $1;}
 expreAd:   expreMul {$$ = $1;}
          | expreAd opAd expreMul 
          {
-            if($2 != T_ENTERO || $4 != T_ENTERO){
-                yyerror("Error de tipos en la asignacion");
-            }else{
-                $$ = T_ENTERO;
+            // Caso + o -: $1 y $3 deben ser enteros
+            if($1 != T_ENTERO || $3 != T_ENTERO){
+                yyerror("Error: Operación aritmética requiere enteros");
             }
+            
+            $$ = T_ENTERO;
         }
          ;
 
 expreMul:  expreUna {$$ = $1;}
          | expreMul opMul expreUna 
          {
-            if($2 != T_ENTERO || $4 != T_ENTERO){
-                yyerror("Error de tipos en la asignacion");
-            }else{
-                $$ = T_ENTERO;
+            // Caso *, /: $1 y $3 deben ser enteros
+            if ($1 != T_ENTERO || $3 != T_ENTERO) {
+                yyerror("Error: Operación multiplicación requiere enteros");
             }
-        }
+            $$ = T_ENTERO;
+        }        
          ;
 
 expreUna:  expreSufi {$$ = $1;}
-         | opUna expreUna 
-         {
-            if($2 != T_LOGICO){
-                yyerror("Error de tipos en la asignacion");
-            }else{
+         | opUna expreUna {
+            // Caso !: $2 se debe ser logico ()
+            if ($1 == NOT_) { 
+                if ($2 != T_LOGICO) {
+                    yyerror("Error: El operador ! requiere tipo lógico");
+                }
                 $$ = T_LOGICO;
-            } //REVISAR
-        }
-         ;
+            } else { 
+                // Casos + o -: requieren entero
+                if ($2 != T_ENTERO) {
+                    yyerror("Error: Se requiere tipo entero");
+                }
+                $$ = T_ENTERO;
+            }
+        };
 
 expreSufi: const {$$ = $1.tipo;}
          | PARA_ expre PARC_ {$$ = $2;}
-         | ID_ {$$ = obtTdS($1).t;}
-         | ID_ CORA_ expre CORC_ {$$ = obtTdS($1).t;}
-         | ID_ PARA_ paramAct PARC_ {$$ = obtTdS($1).t;}
+         | ID_ {
+             SIMB sim = obtTdS($1);
+             if (sim.t == T_ERROR) yyerror("Identificador no declarado");
+             $$ = sim.t; // tipo del identificador o error si no existe
+           }
+         | ID_ CORA_ expre CORC_ {
+             SIMB sim = obtTdS($1);
+             if (sim.t == T_ERROR) {
+                 yyerror("Array no declarado");
+                 $$ = T_ERROR;
+             } else {
+                 if ($3 != T_ENTERO) yyerror("El índice del array debe ser entero");
+                 
+                 // $$ = obtTdS($1).t; lo que habia hecho Julián.
+                 // Yo entiendo que 1 + array[i] es correcto, siempre que el array sea de enteros.
+                 // si usamos $$ = obtTdS($1).t; entonces 1 + array[i] da error de tipos porque obtTdS($1).t es T_ARRAY
+
+                 DIM infoArray = obtTdA(sim.ref);
+                 $$ = infoArray.telem;  //tipo de elemento del array
+             }
+           }
+         | ID_ PARA_ paramAct PARC_ {
+             SIMB sim = obtTdS($1);
+             if (sim.t == T_ERROR) yyerror("Función no declarada");
+             $$ = sim.t; // Asumo que en TdS se guarda el tipo de retorno en .t
+           }
          ;
 
 paramAct:  /* epsilon */
@@ -273,31 +326,31 @@ listParamAct: expre
             | expre COMA_ listParamAct
             ;
 
-opLogic:   AND_
-         | OR_
+opLogic:   AND_ { $$  = AND_; }
+         | OR_ { $$  = OR_; }
          ;
 
-opIgual:   IGUAL_
-         | DISTINTO_
+opIgual:   IGUAL_ { $$  = IGUAL_; }
+         | DISTINTO_ { $$  = DISTINTO_; }
          ;
 
-opRel:     MAYOR_
-         | MENOR_
-         | MAYORIGUAL_
-         | MENORIGUAL_
+opRel:     MAYOR_ { $$  = MAYOR_; }
+         | MENOR_ { $$  = MENOR_; }
+         | MAYORIGUAL_ { $$  = MAYORIGUAL_; }
+         | MENORIGUAL_ { $$  = MENORIGUAL_; }
          ;
 
-opAd:      MAS_
-         | MENOS_
+opAd:      MAS_ { $$  = MAS_; }
+         | MENOS_ { $$  = MENOS_; }
          ;
 
-opMul:     POR_
-         | DIV_
+opMul:     POR_ { $$  = POR_; }
+         | DIV_ { $$  = DIV_; }
          ;
 
-opUna:     MAS_
-         | MENOS_
-         | NOT_
+opUna:     MAS_ { $$  = MAS_; }
+         | MENOS_ { $$  = MENOS_; }
+         | NOT_ { $$  = NOT_; }
          ;
 
 %%
