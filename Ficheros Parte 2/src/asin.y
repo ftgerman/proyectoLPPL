@@ -126,7 +126,7 @@ declaVar:  tipoSimp ID_ PUNTOCOMA_
 
 const:     CTE_{$$.tipo = T_ENTERO; $$.cent = $1;}
          | TRUE_{$$.tipo = T_LOGICO; $$.cent = 1;}
-         | FALSE_{$$.tipo = T_ENTERO; $$.cent = 0;}
+         | FALSE_{$$.tipo = T_LOGICO; $$.cent = 0;}
          ;
 
 tipoSimp:  INT_ {$$ = T_ENTERO;}
@@ -187,7 +187,7 @@ expre:     expreLogic
                 yyerror("Objeto no declarado");
                 $$ = T_ERROR; 
             } else if (sim.t != $3) {
-                yyerror("Error: Tipos incompatibles en la asignación");
+                yyerror("Tipos incompatibles en la asignación");
                 $$ = T_ERROR;
             } else {
                 $$ = sim.t;
@@ -209,7 +209,7 @@ expre:     expreLogic
                 
                 // 3. Validar que lo que asignamos coincida con lo que guarda el array
                 if (infoArray.telem != $6) {
-                    yyerror("Error: Tipos incompatibles en la asignación al array");
+                    yyerror("Tipos incompatibles en la asignación al array");
                 }
                 $$ = $6; 
             }
@@ -231,7 +231,7 @@ expreIgual: expreRel {$$ = $1;}
             // if($2 != T_LOGICO || $4 != T_LOGICO){
             // no tienen porque ser logicos, pueden ser enteros. Lo importante es que sean del mismo tipo.
 
-            if($1 != $3) yyerror("Error: Comparación de tipos distintos");
+            if($1 != $3) yyerror("Comparación de tipos distintos");
             $$ = T_LOGICO;
 
             }
@@ -253,7 +253,7 @@ expreAd:   expreMul {$$ = $1;}
          {
             // Caso + o -: $1 y $3 deben ser enteros
             if($1 != T_ENTERO || $3 != T_ENTERO){
-                yyerror("Error: Operación aritmética requiere enteros");
+                yyerror("Operación aritmética requiere enteros");
             }
             
             $$ = T_ENTERO;
@@ -265,7 +265,7 @@ expreMul:  expreUna {$$ = $1;}
          {
             // Caso *, /: $1 y $3 deben ser enteros
             if ($1 != T_ENTERO || $3 != T_ENTERO) {
-                yyerror("Error: Operación multiplicación requiere enteros");
+                yyerror("Operación multiplicación requiere enteros");
             }
             $$ = T_ENTERO;
         }        
@@ -276,13 +276,13 @@ expreUna:  expreSufi {$$ = $1;}
             // Caso !: $2 se debe ser logico ()
             if ($1 == NOT_) { 
                 if ($2 != T_LOGICO) {
-                    yyerror("Error: El operador ! requiere tipo lógico");
+                    yyerror("El operador ! requiere tipo lógico");
                 }
                 $$ = T_LOGICO;
             } else { 
                 // Casos + o -: requieren entero
                 if ($2 != T_ENTERO) {
-                    yyerror("Error: Se requiere tipo entero");
+                    yyerror("Se requiere tipo entero");
                 }
                 $$ = T_ENTERO;
             }
