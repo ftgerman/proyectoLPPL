@@ -101,8 +101,9 @@ union YYSTYPE
         char *ident;
         int cent;
         ATRIBUTO attr;
+        STRUCFUNC stf;
 
-#line 106 "asin.h"
+#line 107 "asin.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

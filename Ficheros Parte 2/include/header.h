@@ -29,4 +29,8 @@ typedef struct atributo{
         int tipo;
         int cent;
 } ATRIBUTO;
+typedef struct strucfunc{
+        int tipoRetorno;
+        int despAnterior;
+} STRUCFUNC;
 /*****************************************************************************/

@@ -19,6 +19,8 @@
 #define FUNCION       2
 #define PARAMETRO     3
 
+#define TALLA_TIPO_SIMPLE 1
+
 typedef struct simb /******************************** Estructura para la TdS */
 {
   int   t;               /* Tipo del objeto                                  */
