@@ -583,9 +583,9 @@ static const yytype_int16 yyrline[] =
      226,   227,   228,   229,   232,   233,   236,   246,   254,   254,
      263,   262,   278,   278,   280,   281,   307,   336,   337,   348,
      349,   361,   362,   373,   374,   385,   386,   397,   398,   416,
-     417,   418,   429,   446,   475,   476,   479,   480,   483,   483,
-     484,   484,   485,   485,   485,   485,   486,   486,   487,   487,
-     488,   488,   488
+     417,   418,   429,   446,   471,   472,   475,   476,   479,   480,
+     483,   484,   487,   488,   489,   490,   493,   494,   497,   498,
+     501,   502,   503
 };
 #endif
 
@@ -1997,12 +1997,8 @@ yyreduce:
                  yyerror("Función no declarada");
                  (yyval.cent) = T_ERROR;
              } else {
-                 /* * CRUCIAL PARA b05.c y b04.c: 
-                  * Las variables simples tienen ref = -1. 
-                  * Las funciones y arrays tienen ref >= 0.
-                  * T_ARRAY se comprueba aparte.
-                  */
-                 if (sim.ref == -1 && sim.t != T_ARRAY) {
+                 
+                 if (sim.ref == -1 && sim.t != T_ARRAY) {//si no es array pero ref == -1
                      yyerror("El identificador no es una función");
                      (yyval.cent) = T_ERROR;
                  } else if (sim.t == T_ARRAY) {
@@ -2017,35 +2013,125 @@ yyreduce:
                  }
              }
          }
-#line 2021 "asin.c"
+#line 2017 "asin.c"
     break;
 
   case 64: /* paramAct: %empty  */
-#line 475 "src/asin.y"
+#line 471 "src/asin.y"
                         { (yyval.cent) = insTdD(-1, T_VACIO); }
-#line 2027 "asin.c"
+#line 2023 "asin.c"
     break;
 
   case 65: /* paramAct: listParamAct  */
-#line 476 "src/asin.y"
+#line 472 "src/asin.y"
                         { (yyval.cent) = (yyvsp[0].cent); }
-#line 2033 "asin.c"
+#line 2029 "asin.c"
     break;
 
   case 66: /* listParamAct: expre  */
-#line 479 "src/asin.y"
+#line 475 "src/asin.y"
                                        { (yyval.cent) = insTdD(-1, (yyvsp[0].cent)); }
-#line 2039 "asin.c"
+#line 2035 "asin.c"
     break;
 
   case 67: /* listParamAct: expre COMA_ listParamAct  */
-#line 480 "src/asin.y"
+#line 476 "src/asin.y"
                                        { (yyval.cent) = insTdD((yyvsp[0].cent), (yyvsp[-2].cent)); }
-#line 2045 "asin.c"
+#line 2041 "asin.c"
+    break;
+
+  case 68: /* opLogic: AND_  */
+#line 479 "src/asin.y"
+                { (yyval.cent) = AND_; }
+#line 2047 "asin.c"
+    break;
+
+  case 69: /* opLogic: OR_  */
+#line 480 "src/asin.y"
+                { (yyval.cent) = OR_; }
+#line 2053 "asin.c"
+    break;
+
+  case 70: /* opIgual: IGUAL_  */
+#line 483 "src/asin.y"
+                     { (yyval.cent) = IGUAL_; }
+#line 2059 "asin.c"
+    break;
+
+  case 71: /* opIgual: DISTINTO_  */
+#line 484 "src/asin.y"
+                     { (yyval.cent) = DISTINTO_; }
+#line 2065 "asin.c"
+    break;
+
+  case 72: /* opRel: MAYOR_  */
+#line 487 "src/asin.y"
+                       { (yyval.cent) = MAYOR_; }
+#line 2071 "asin.c"
+    break;
+
+  case 73: /* opRel: MENOR_  */
+#line 488 "src/asin.y"
+                       { (yyval.cent) = MENOR_; }
+#line 2077 "asin.c"
+    break;
+
+  case 74: /* opRel: MAYORIGUAL_  */
+#line 489 "src/asin.y"
+                       { (yyval.cent) = MAYORIGUAL_; }
+#line 2083 "asin.c"
+    break;
+
+  case 75: /* opRel: MENORIGUAL_  */
+#line 490 "src/asin.y"
+                       { (yyval.cent) = MENORIGUAL_; }
+#line 2089 "asin.c"
+    break;
+
+  case 76: /* opAd: MAS_  */
+#line 493 "src/asin.y"
+                  { (yyval.cent) = MAS_; }
+#line 2095 "asin.c"
+    break;
+
+  case 77: /* opAd: MENOS_  */
+#line 494 "src/asin.y"
+                  { (yyval.cent) = MENOS_; }
+#line 2101 "asin.c"
+    break;
+
+  case 78: /* opMul: POR_  */
+#line 497 "src/asin.y"
+                { (yyval.cent) = POR_; }
+#line 2107 "asin.c"
+    break;
+
+  case 79: /* opMul: DIV_  */
+#line 498 "src/asin.y"
+                { (yyval.cent) = DIV_; }
+#line 2113 "asin.c"
+    break;
+
+  case 80: /* opUna: MAS_  */
+#line 501 "src/asin.y"
+                  { (yyval.cent) = MAS_; }
+#line 2119 "asin.c"
+    break;
+
+  case 81: /* opUna: MENOS_  */
+#line 502 "src/asin.y"
+                  { (yyval.cent) = MENOS_; }
+#line 2125 "asin.c"
+    break;
+
+  case 82: /* opUna: NOT_  */
+#line 503 "src/asin.y"
+                  { (yyval.cent) = NOT_; }
+#line 2131 "asin.c"
     break;
 
 
-#line 2049 "asin.c"
+#line 2135 "asin.c"
 
       default: break;
     }
@@ -2269,6 +2355,6 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 490 "src/asin.y"
+#line 506 "src/asin.y"
 
 /* --- CÓDIGO DE USUARIO --- */

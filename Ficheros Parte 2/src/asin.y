@@ -476,12 +476,32 @@ listParamAct: expre                    { $$ = insTdD(-1, $1); }//el primero es e
             | expre COMA_ listParamAct { $$ = insTdD($3, $1); }//tomo la referencia del anterior que está en dolar1
             ;
 
-opLogic: AND_ | OR_ ;
-opIgual: IGUAL_ | DISTINTO_ ;
-opRel: MAYOR_ | MENOR_ | MAYORIGUAL_ | MENORIGUAL_ ;
-opAd: MAS_ | MENOS_ ;
-opMul: POR_ | DIV_ ;
-opUna: MAS_ | MENOS_ | NOT_ ;
+opLogic:   AND_ { $$ = AND_; }
+         | OR_  { $$ = OR_; }
+         ;
+
+opIgual:   IGUAL_    { $$ = IGUAL_; }
+         | DISTINTO_ { $$ = DISTINTO_; }
+         ;
+
+opRel:     MAYOR_      { $$ = MAYOR_; }
+         | MENOR_      { $$ = MENOR_; }
+         | MAYORIGUAL_ { $$ = MAYORIGUAL_; }
+         | MENORIGUAL_ { $$ = MENORIGUAL_; }
+         ;
+
+opAd:      MAS_   { $$ = MAS_; }
+         | MENOS_ { $$ = MENOS_; }
+         ;
+
+opMul:     POR_ { $$ = POR_; }
+         | DIV_ { $$ = DIV_; }
+         ;
+
+opUna:     MAS_   { $$ = MAS_; }
+         | MENOS_ { $$ = MENOS_; }
+         | NOT_   { $$ = NOT_; }
+         ;
 
 %%
 /* --- CÓDIGO DE USUARIO --- */
