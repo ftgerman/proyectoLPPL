@@ -121,7 +121,7 @@ declaVar:  tipoSimp ID_ PUNTOCOMA_
             }
             
             if ( ! insTdS($2, VARIABLE, T_ARRAY, niv, dvar, ref)) { 
-                yyerror ("Identificador repetido");
+                yyerror ("Identificador de array repetido");
             } else{
                 dvar += numelem;
             }
@@ -140,13 +140,8 @@ tipoSimp:  INT_ {$$ = T_ENTERO;}
 
 declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y desplazamiento anterior
     {
-        //comprobamos si la función ya existe
-        if (obtTdS($2).t != T_ERROR) {
-            yyerror("Identificación de función repetido");
-        }
         tipoRetornoActual = $1;
-        $<stf>$.tipoRetorno = $1;//guardamos el tipo de retorno ??
-
+        $<stf>$.tipoRetorno = $1;
         $<stf>$.despAnterior = dvar; // Usamos para guardar el dvar actual 
         niv++;     
         dvar = 0;  
@@ -156,18 +151,19 @@ declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y despla
     PARA_ paramForm PARC_ 
     {
         //insertamos la función en el ámbito padre
-        //dolar5 viene de paramForm, es la referencia a la TdD
         //printf("Entró en insertarfunción \n");
         if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5)) {
-            yyerror("Error al insertar función en TDS");
+            yyerror("Identificación de función repetido");
         }
     }
     bloque
     {
+        mostrarTdS();
         descargaContexto(niv);
         niv--;
         /* Restauramos el dvar global */
-        dvar = $<stf>3.despAnterior; 
+        dvar = $<stf>3.despAnterior;
+        // poner desplazamiento en bloque 
     }
          ;
 
@@ -184,6 +180,7 @@ paramForm: /* epsilon */
 listParamForm: tipoSimp ID_
     {
         /* b04.c: Identificador de parametro repetido (en TDS local) */
+        printf("Entró en listaparámetros");
         if (!insTdS($2, PARAMETRO, $1, niv, dvar, -1)) {
             yyerror("Identificador de parámetro repetido");
         } else {
@@ -207,6 +204,7 @@ listParamForm: tipoSimp ID_
 bloque:    LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
     {
         /* b04.c: Error de tipos en el "return" */
+        //hay que detectar si es un array, para decirle que no es  un tipo que pueda devolver
         if ($5 != T_ERROR) {
             if ($5 != tipoRetornoActual) {
                 yyerror("Error de tipos en el 'return'");

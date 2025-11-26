@@ -578,14 +578,14 @@ static const yytype_int8 yytranslate[] =
 static const yytype_int16 yyrline[] =
 {
        0,    63,    63,    63,    73,    74,    77,    78,    81,    92,
-     107,   132,   133,   134,   137,   138,   142,   157,   141,   175,
-     179,   184,   195,   208,   207,   217,   218,   221,   222,   225,
-     226,   227,   228,   229,   232,   233,   236,   246,   254,   254,
-     263,   262,   278,   278,   280,   281,   307,   336,   337,   348,
-     349,   361,   362,   373,   374,   385,   386,   397,   398,   416,
-     417,   418,   429,   446,   471,   472,   475,   476,   479,   480,
-     483,   484,   487,   488,   489,   490,   493,   494,   497,   498,
-     501,   502,   503
+     107,   132,   133,   134,   137,   138,   142,   152,   141,   171,
+     175,   180,   192,   205,   204,   215,   216,   219,   220,   223,
+     224,   225,   226,   227,   230,   231,   234,   244,   252,   252,
+     261,   260,   276,   276,   278,   279,   305,   334,   335,   346,
+     347,   359,   360,   371,   372,   383,   384,   395,   396,   414,
+     415,   416,   427,   444,   469,   470,   473,   474,   477,   478,
+     481,   482,   485,   486,   487,   488,   491,   492,   495,   496,
+     499,   500,   501
 };
 #endif
 
@@ -1588,7 +1588,7 @@ yyreduce:
             }
             
             if ( ! insTdS((yyvsp[-4].ident), VARIABLE, T_ARRAY, niv, dvar, ref)) { 
-                yyerror ("Identificador repetido");
+                yyerror ("Identificador de array repetido");
             } else{
                 dvar += numelem;
             }
@@ -1630,67 +1630,64 @@ yyreduce:
   case 16: /* @2: %empty  */
 #line 142 "src/asin.y"
     {
-        //comprobamos si la función ya existe
-        if (obtTdS((yyvsp[0].ident)).t != T_ERROR) {
-            yyerror("Identificación de función repetido");
-        }
         tipoRetornoActual = (yyvsp[-1].cent);
-        (yyval.stf).tipoRetorno = (yyvsp[-1].cent);//guardamos el tipo de retorno ??
-
+        (yyval.stf).tipoRetorno = (yyvsp[-1].cent);
         (yyval.stf).despAnterior = dvar; // Usamos para guardar el dvar actual 
         niv++;     
         dvar = 0;  
         cargaContexto(niv); 
 
     }
-#line 1647 "asin.c"
+#line 1642 "asin.c"
     break;
 
   case 17: /* $@3: %empty  */
-#line 157 "src/asin.y"
+#line 152 "src/asin.y"
     {
         //insertamos la función en el ámbito padre
-        //dolar5 viene de paramForm, es la referencia a la TdD
         //printf("Entró en insertarfunción \n");
         if (!insTdS((yyvsp[-4].ident), FUNCION, (yyvsp[-5].cent), niv - 1, -1, (yyvsp[-1].cent))) {
-            yyerror("Error al insertar función en TDS");
+            yyerror("Identificación de función repetido");
         }
     }
-#line 1660 "asin.c"
+#line 1654 "asin.c"
     break;
 
   case 18: /* declaFunc: tipoSimp ID_ @2 PARA_ paramForm PARC_ $@3 bloque  */
-#line 166 "src/asin.y"
+#line 160 "src/asin.y"
     {
+        mostrarTdS();
         descargaContexto(niv);
         niv--;
         /* Restauramos el dvar global */
-        dvar = (yyvsp[-5].stf).despAnterior; 
+        dvar = (yyvsp[-5].stf).despAnterior;
+        // poner desplazamiento en bloque 
     }
-#line 1671 "asin.c"
+#line 1667 "asin.c"
     break;
 
   case 19: /* paramForm: %empty  */
-#line 175 "src/asin.y"
+#line 171 "src/asin.y"
     { 
         /* Si no hay parámetros, creamos entrada vacía en TdD */
         (yyval.cent) = insTdD(-1, T_VACIO); 
     }
-#line 1680 "asin.c"
+#line 1676 "asin.c"
     break;
 
   case 20: /* paramForm: listParamForm  */
-#line 180 "src/asin.y"
+#line 176 "src/asin.y"
     { 
         (yyval.cent) = (yyvsp[0].cent); 
     }
-#line 1688 "asin.c"
+#line 1684 "asin.c"
     break;
 
   case 21: /* listParamForm: tipoSimp ID_  */
-#line 185 "src/asin.y"
+#line 181 "src/asin.y"
     {
         /* b04.c: Identificador de parametro repetido (en TDS local) */
+        printf("Entró en listaparámetros");
         if (!insTdS((yyvsp[0].ident), PARAMETRO, (yyvsp[-1].cent), niv, dvar, -1)) {
             yyerror("Identificador de parámetro repetido");
         } else {
@@ -1699,11 +1696,11 @@ yyreduce:
         /* Crear nueva entrada en TdD (final de la lista) */
         (yyval.cent) = insTdD(-1, (yyvsp[-1].cent));
     }
-#line 1703 "asin.c"
+#line 1700 "asin.c"
     break;
 
   case 22: /* listParamForm: tipoSimp ID_ COMA_ listParamForm  */
-#line 196 "src/asin.y"
+#line 193 "src/asin.y"
     {
         if (!insTdS((yyvsp[-2].ident), PARAMETRO, (yyvsp[-3].cent), niv, dvar, -1)) {
             yyerror("Identificador de parámetro repetido");
@@ -1713,24 +1710,25 @@ yyreduce:
         /* Insertar al principio de la lista existente */
         (yyval.cent) = insTdD((yyvsp[0].cent), (yyvsp[-3].cent));
     }
-#line 1717 "asin.c"
+#line 1714 "asin.c"
     break;
 
   case 23: /* $@4: %empty  */
-#line 208 "src/asin.y"
+#line 205 "src/asin.y"
     {
         /* b04.c: Error de tipos en el "return" */
+        //hay que detectar si es un array, para decirle que no es  un tipo que pueda devolver
         if ((yyvsp[-1].cent) != T_ERROR) {
             if ((yyvsp[-1].cent) != tipoRetornoActual) {
                 yyerror("Error de tipos en el 'return'");
             }
         }
     }
-#line 1730 "asin.c"
+#line 1728 "asin.c"
     break;
 
   case 36: /* instEntSal: READ_ PARA_ ID_ PARC_ PUNTOCOMA_  */
-#line 237 "src/asin.y"
+#line 235 "src/asin.y"
     {
         /* b03.c: El argumento del "read" debe ser "entero" */
         SIMB sim = obtTdS((yyvsp[-2].ident));
@@ -1740,44 +1738,44 @@ yyreduce:
             yyerror("El argumento del \"read\" debe ser \"entero\"");
         }
     }
-#line 1744 "asin.c"
+#line 1742 "asin.c"
     break;
 
   case 37: /* instEntSal: PRINT_ PARA_ expre PARC_ PUNTOCOMA_  */
-#line 247 "src/asin.y"
+#line 245 "src/asin.y"
     {
         /* b03.c: La expresion del "print" debe ser "entera" */
         if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[-2].cent) != T_ENTERO) {
             yyerror("La expresion del \"print\" debe ser \"entera\"");
         }
     }
-#line 1755 "asin.c"
+#line 1753 "asin.c"
     break;
 
   case 38: /* $@5: %empty  */
-#line 254 "src/asin.y"
+#line 252 "src/asin.y"
                            {
         /* b04.c: La expresion del `if' debe ser 'logico' */
         if ((yyvsp[0].cent) != T_ERROR && (yyvsp[0].cent) != T_LOGICO) {
             yyerror("La expresion del \"if\" debe ser \"logica\"");
         }
     }
-#line 1766 "asin.c"
+#line 1764 "asin.c"
     break;
 
   case 40: /* $@6: %empty  */
-#line 263 "src/asin.y"
+#line 261 "src/asin.y"
     {
         /* b03.c: La expresion del "for" debe ser "logica" (la del medio $5) */
         if ((yyvsp[0].cent) != T_ERROR && (yyvsp[0].cent) != T_LOGICO) {
             yyerror("La expresion del \"for\" debe ser \"logica\"");
         }
     }
-#line 1777 "asin.c"
+#line 1775 "asin.c"
     break;
 
   case 41: /* instIter: FOR_ PARA_ expreOP PUNTOCOMA_ expre $@6 PUNTOCOMA_ expreOP PARC_ inst  */
-#line 269 "src/asin.y"
+#line 267 "src/asin.y"
     {
         /* b02.c: La `expreOp' del `for' debe ser de tipo simple */
         if ((yyvsp[-7].cent) == T_ARRAY || (yyvsp[-2].cent) == T_ARRAY || (yyvsp[-7].cent) == T_ERROR || (yyvsp[-2].cent) == T_ERROR) {
@@ -1785,17 +1783,17 @@ yyreduce:
         }
     
     }
-#line 1789 "asin.c"
+#line 1787 "asin.c"
     break;
 
   case 42: /* expreOP: %empty  */
-#line 278 "src/asin.y"
+#line 276 "src/asin.y"
                        { (yyval.cent) = T_VACIO; }
-#line 1795 "asin.c"
+#line 1793 "asin.c"
     break;
 
   case 45: /* expre: ID_ ASIG_ expre  */
-#line 282 "src/asin.y"
+#line 280 "src/asin.y"
      {
          SIMB sim = obtTdS((yyvsp[-2].ident));
          if (sim.t == T_ERROR) {
@@ -1821,11 +1819,11 @@ yyreduce:
              (yyval.cent) = T_ERROR;
          }
      }
-#line 1825 "asin.c"
+#line 1823 "asin.c"
     break;
 
   case 46: /* expre: ID_ CORA_ expre CORC_ ASIG_ expre  */
-#line 308 "src/asin.y"
+#line 306 "src/asin.y"
      {
          SIMB sim = obtTdS((yyvsp[-5].ident));
          if (sim.t == T_ERROR) {
@@ -1852,11 +1850,11 @@ yyreduce:
              }
          }
      }
-#line 1856 "asin.c"
+#line 1854 "asin.c"
     break;
 
   case 48: /* expreLogic: expreLogic opLogic expreIgual  */
-#line 338 "src/asin.y"
+#line 336 "src/asin.y"
           {
               if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[0].cent) != T_ERROR) {
                   if ((yyvsp[-2].cent) != T_LOGICO || (yyvsp[0].cent) != T_LOGICO) {
@@ -1865,11 +1863,11 @@ yyreduce:
                   } else (yyval.cent) = T_LOGICO;
               } else (yyval.cent) = T_ERROR;
           }
-#line 1869 "asin.c"
+#line 1867 "asin.c"
     break;
 
   case 50: /* expreIgual: expreIgual opIgual expreRel  */
-#line 350 "src/asin.y"
+#line 348 "src/asin.y"
           {
               if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[0].cent) != T_ERROR) {
                   if ((yyvsp[-2].cent) != (yyvsp[0].cent)) {
@@ -1879,11 +1877,11 @@ yyreduce:
                   } else (yyval.cent) = T_LOGICO;
               } else (yyval.cent) = T_ERROR;
           }
-#line 1883 "asin.c"
+#line 1881 "asin.c"
     break;
 
   case 52: /* expreRel: expreRel opRel expreAd  */
-#line 363 "src/asin.y"
+#line 361 "src/asin.y"
         {  
             if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[0].cent) != T_ERROR) {
                 if ((yyvsp[-2].cent) != T_ENTERO || (yyvsp[0].cent) != T_ENTERO) {
@@ -1892,11 +1890,11 @@ yyreduce:
                 } else (yyval.cent) = T_LOGICO;
             } else (yyval.cent) = T_ERROR;
         }
-#line 1896 "asin.c"
+#line 1894 "asin.c"
     break;
 
   case 54: /* expreAd: expreAd opAd expreMul  */
-#line 375 "src/asin.y"
+#line 373 "src/asin.y"
        {
            if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[0].cent) != T_ERROR) {
                if ((yyvsp[-2].cent) != T_ENTERO || (yyvsp[0].cent) != T_ENTERO) {
@@ -1905,11 +1903,11 @@ yyreduce:
                } else (yyval.cent) = T_ENTERO;
            } else (yyval.cent) = T_ERROR;
        }
-#line 1909 "asin.c"
+#line 1907 "asin.c"
     break;
 
   case 56: /* expreMul: expreMul opMul expreUna  */
-#line 387 "src/asin.y"
+#line 385 "src/asin.y"
         {
             if ((yyvsp[-2].cent) != T_ERROR && (yyvsp[0].cent) != T_ERROR) {
                 if ((yyvsp[-2].cent) != T_ENTERO || (yyvsp[0].cent) != T_ENTERO) {
@@ -1918,11 +1916,11 @@ yyreduce:
                 } else (yyval.cent) = T_ENTERO;
             } else (yyval.cent) = T_ERROR;
         }
-#line 1922 "asin.c"
+#line 1920 "asin.c"
     break;
 
   case 58: /* expreUna: opUna expreUna  */
-#line 399 "src/asin.y"
+#line 397 "src/asin.y"
         {
             if ((yyvsp[0].cent) != T_ERROR) {
                 if ((yyvsp[-1].cent) == NOT_) { 
@@ -1938,23 +1936,23 @@ yyreduce:
                 }
             } else (yyval.cent) = T_ERROR;
         }
-#line 1942 "asin.c"
+#line 1940 "asin.c"
     break;
 
   case 59: /* expreSufi: const  */
-#line 416 "src/asin.y"
+#line 414 "src/asin.y"
                  { (yyval.cent) = (yyvsp[0].attr).tipo; }
-#line 1948 "asin.c"
+#line 1946 "asin.c"
     break;
 
   case 60: /* expreSufi: PARA_ expre PARC_  */
-#line 417 "src/asin.y"
+#line 415 "src/asin.y"
                              { (yyval.cent) = (yyvsp[-1].cent); }
-#line 1954 "asin.c"
+#line 1952 "asin.c"
     break;
 
   case 61: /* expreSufi: ID_  */
-#line 419 "src/asin.y"
+#line 417 "src/asin.y"
          {
              SIMB sim = obtTdS((yyvsp[0].ident));
              if (sim.t == T_ERROR) {
@@ -1965,11 +1963,11 @@ yyreduce:
                  else (yyval.cent) = sim.t;
              }
          }
-#line 1969 "asin.c"
+#line 1967 "asin.c"
     break;
 
   case 62: /* expreSufi: ID_ CORA_ expre CORC_  */
-#line 430 "src/asin.y"
+#line 428 "src/asin.y"
          {
              SIMB sim = obtTdS((yyvsp[-3].ident));
              if (sim.t == T_ERROR) {
@@ -1986,11 +1984,11 @@ yyreduce:
                  (yyval.cent) = dim.telem;
              }
          }
-#line 1990 "asin.c"
+#line 1988 "asin.c"
     break;
 
   case 63: /* expreSufi: ID_ PARA_ paramAct PARC_  */
-#line 447 "src/asin.y"
+#line 445 "src/asin.y"
          {
              SIMB sim = obtTdS((yyvsp[-3].ident));
              if (sim.t == T_ERROR) {
@@ -2013,125 +2011,125 @@ yyreduce:
                  }
              }
          }
-#line 2017 "asin.c"
+#line 2015 "asin.c"
     break;
 
   case 64: /* paramAct: %empty  */
-#line 471 "src/asin.y"
+#line 469 "src/asin.y"
                         { (yyval.cent) = insTdD(-1, T_VACIO); }
-#line 2023 "asin.c"
+#line 2021 "asin.c"
     break;
 
   case 65: /* paramAct: listParamAct  */
-#line 472 "src/asin.y"
+#line 470 "src/asin.y"
                         { (yyval.cent) = (yyvsp[0].cent); }
-#line 2029 "asin.c"
+#line 2027 "asin.c"
     break;
 
   case 66: /* listParamAct: expre  */
-#line 475 "src/asin.y"
+#line 473 "src/asin.y"
                                        { (yyval.cent) = insTdD(-1, (yyvsp[0].cent)); }
-#line 2035 "asin.c"
+#line 2033 "asin.c"
     break;
 
   case 67: /* listParamAct: expre COMA_ listParamAct  */
-#line 476 "src/asin.y"
+#line 474 "src/asin.y"
                                        { (yyval.cent) = insTdD((yyvsp[0].cent), (yyvsp[-2].cent)); }
-#line 2041 "asin.c"
+#line 2039 "asin.c"
     break;
 
   case 68: /* opLogic: AND_  */
-#line 479 "src/asin.y"
+#line 477 "src/asin.y"
                 { (yyval.cent) = AND_; }
-#line 2047 "asin.c"
+#line 2045 "asin.c"
     break;
 
   case 69: /* opLogic: OR_  */
-#line 480 "src/asin.y"
+#line 478 "src/asin.y"
                 { (yyval.cent) = OR_; }
-#line 2053 "asin.c"
+#line 2051 "asin.c"
     break;
 
   case 70: /* opIgual: IGUAL_  */
-#line 483 "src/asin.y"
+#line 481 "src/asin.y"
                      { (yyval.cent) = IGUAL_; }
-#line 2059 "asin.c"
+#line 2057 "asin.c"
     break;
 
   case 71: /* opIgual: DISTINTO_  */
-#line 484 "src/asin.y"
+#line 482 "src/asin.y"
                      { (yyval.cent) = DISTINTO_; }
-#line 2065 "asin.c"
+#line 2063 "asin.c"
     break;
 
   case 72: /* opRel: MAYOR_  */
-#line 487 "src/asin.y"
+#line 485 "src/asin.y"
                        { (yyval.cent) = MAYOR_; }
-#line 2071 "asin.c"
+#line 2069 "asin.c"
     break;
 
   case 73: /* opRel: MENOR_  */
-#line 488 "src/asin.y"
+#line 486 "src/asin.y"
                        { (yyval.cent) = MENOR_; }
-#line 2077 "asin.c"
+#line 2075 "asin.c"
     break;
 
   case 74: /* opRel: MAYORIGUAL_  */
-#line 489 "src/asin.y"
+#line 487 "src/asin.y"
                        { (yyval.cent) = MAYORIGUAL_; }
-#line 2083 "asin.c"
+#line 2081 "asin.c"
     break;
 
   case 75: /* opRel: MENORIGUAL_  */
-#line 490 "src/asin.y"
+#line 488 "src/asin.y"
                        { (yyval.cent) = MENORIGUAL_; }
-#line 2089 "asin.c"
+#line 2087 "asin.c"
     break;
 
   case 76: /* opAd: MAS_  */
-#line 493 "src/asin.y"
+#line 491 "src/asin.y"
                   { (yyval.cent) = MAS_; }
-#line 2095 "asin.c"
+#line 2093 "asin.c"
     break;
 
   case 77: /* opAd: MENOS_  */
-#line 494 "src/asin.y"
+#line 492 "src/asin.y"
                   { (yyval.cent) = MENOS_; }
-#line 2101 "asin.c"
+#line 2099 "asin.c"
     break;
 
   case 78: /* opMul: POR_  */
-#line 497 "src/asin.y"
+#line 495 "src/asin.y"
                 { (yyval.cent) = POR_; }
-#line 2107 "asin.c"
+#line 2105 "asin.c"
     break;
 
   case 79: /* opMul: DIV_  */
-#line 498 "src/asin.y"
+#line 496 "src/asin.y"
                 { (yyval.cent) = DIV_; }
-#line 2113 "asin.c"
+#line 2111 "asin.c"
     break;
 
   case 80: /* opUna: MAS_  */
-#line 501 "src/asin.y"
+#line 499 "src/asin.y"
                   { (yyval.cent) = MAS_; }
-#line 2119 "asin.c"
+#line 2117 "asin.c"
     break;
 
   case 81: /* opUna: MENOS_  */
-#line 502 "src/asin.y"
+#line 500 "src/asin.y"
                   { (yyval.cent) = MENOS_; }
-#line 2125 "asin.c"
+#line 2123 "asin.c"
     break;
 
   case 82: /* opUna: NOT_  */
-#line 503 "src/asin.y"
+#line 501 "src/asin.y"
                   { (yyval.cent) = NOT_; }
-#line 2131 "asin.c"
+#line 2129 "asin.c"
     break;
 
 
-#line 2135 "asin.c"
+#line 2133 "asin.c"
 
       default: break;
     }
@@ -2355,6 +2353,6 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 506 "src/asin.y"
+#line 504 "src/asin.y"
 
 /* --- CÓDIGO DE USUARIO --- */
