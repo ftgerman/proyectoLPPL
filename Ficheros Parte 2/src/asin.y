@@ -144,7 +144,8 @@ declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y despla
         $<stf>$.tipoRetorno = $1;
         $<stf>$.despAnterior = dvar; // Usamos para guardar el dvar actual 
         niv++;     
-        dvar = 0;  
+        //dvar = 0;  
+        dvar = TALLA_SEGENLACES + TALLA_ESTADO_MAQUINA; 
         cargaContexto(niv); 
 
     }
@@ -156,6 +157,7 @@ declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y despla
             yyerror("Identificación de función repetido");
         }
     }
+    {dvar = 0;}
     bloque
     {
         mostrarTdS();
@@ -181,27 +183,29 @@ listParamForm: tipoSimp ID_
     {
         /* b04.c: Identificador de parametro repetido (en TDS local) */
         printf("Entró en listaparámetros");
-        if (!insTdS($2, PARAMETRO, $1, niv, dvar, -1)) {
+
+        // antes estaba en el else
+        dvar += TALLA_TIPO_SIMPLE;
+        if (!insTdS($2, PARAMETRO, $1, niv, -dvar, -1)) {
             yyerror("Identificador de parámetro repetido");
-        } else {
-            dvar += TALLA_TIPO_SIMPLE;
-        }
+        } 
         /* Crear nueva entrada en TdD (final de la lista) */
         $$ = insTdD(-1, $1);
     }
             | tipoSimp ID_ COMA_ listParamForm
-    {
-        if (!insTdS($2, PARAMETRO, $1, niv, dvar, -1)) {
-            yyerror("Identificador de parámetro repetido");
-        } else {
+    {   
+            // antes estaba en el else
             dvar += TALLA_TIPO_SIMPLE;
-        }
+
+            if (!insTdS($2, PARAMETRO, $1, niv, -dvar, -1)) {
+                yyerror("Identificador de parámetro repetido");
+            }
         /* Insertar al principio de la lista existente */
         $$ = insTdD($4, $1);
     }
              ;
 
-bloque:    LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
+bloque: LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
     {
         /* b04.c: Error de tipos en el "return" */
         //hay que detectar si es un array, para decirle que no es  un tipo que pueda devolver

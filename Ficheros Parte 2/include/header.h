@@ -9,6 +9,15 @@
 /****************************************************** Constantes generales */
 #define TRUE  1
 #define FALSE 0
+
+/*Consultar 8.2 enunciado*/
+#define TALLA_TIPO_SIMPLE 1 /* Talla asociada a los tipos simples */
+#define TALLA_SEGENLACES 2 /* Talla del segmento de Enlaces de Control */
+#define TALLA_ESTADO_MAQUINA 1 // esto no aparece en el enunciado
+
+/************************ Variables externas definidas en Programa Principal */
+extern int verTdS; /* Flag para saber si mostrar la TdS */
+
 /************************************* Variables externas definidas en el AL */
 extern int yylex();
 extern int yyparse();

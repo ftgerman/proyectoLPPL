@@ -8,6 +8,7 @@ bool main (int A, bool A)  // Identificador de parametro repetido
   return 14;               // Error de tipos en el "return" 
 }
 
+//int Y (int A, bool B, int C, int D, int E)   
 int Y (int A, bool B)   
 {
   int X[10];
@@ -16,7 +17,7 @@ int Y (int A, bool B)
 
 int main ()                // Identificador de funcion repetido
 {
-  int x; bool y;             
+  int x; bool y; 
   x = 14;  y = true;
   if (x) {                 // La expresion del `if' debe ser 'logico'
     x = X(x, y);           // En la asignacion a una variable simple
