@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "header.h" // Fichero de cabeceras del proyecto
 #include "libtds.h"
+#include <string.h>
 
 void yyerror(const char *s);
 extern int yylex();
@@ -13,7 +14,8 @@ extern int yylineno;
 extern char *yytext;
 
 int ref;    // referencia para arrays
-int tipoRetornoActual; //guardar el tipo de retorno de las funciones, se hace así????
+int tipoRetornoActual; //guardar el tipo de retorno de las funciones
+int numMain;
 
 %}
 
@@ -60,13 +62,15 @@ int tipoRetornoActual; //guardar el tipo de retorno de las funciones, se hace as
 %%
 /* --- REGLAS DE LA GRAMATICA --- */
 
-programa:{niv = 0; cargaContexto(niv); dvar = 0;/*doy valor a niv y dvar inicial para cuando lo usemos*/} listDecla{
+programa:{niv = 0; cargaContexto(niv); dvar = 0; numMain = 0;/*doy valor a niv y dvar inicial para cuando lo usemos*/} listDecla{
                 
                 SIMB sim_main = obtTdS("main");
-                if (sim_main.t == T_ERROR || sim_main.t != T_ENTERO) {
+                if (sim_main.t == T_ERROR) {
                     yyerror("Debe existir una función 'main'");
                 }
-                mostrarTdS();   
+                if (numMain > 1){yyerror("El programa tiene más de un main");}
+                //printf("Num mains %d \n", numMain);
+                //mostrarTdS();   
         }
         ;
 
@@ -83,7 +87,7 @@ declaVar:  tipoSimp ID_ PUNTOCOMA_
                 int tipo = $1;
                 int talla = 1;//como es un tipo simple = 1
                 if (! insTdS($2, VARIABLE, tipo, niv, dvar, -1)){
-                        yyerror("Identificador repetido");
+                        yyerror("Identificador de variable repetido");
                 } else{
                         dvar += talla;
                 }
@@ -153,14 +157,17 @@ declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y despla
     {
         //insertamos la función en el ámbito padre
         //printf("Entró en insertarfunción \n");
+        if (strcmp($2, "main") == 0) { numMain += 1; }
+
         if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5)) {
             yyerror("Identificación de función repetido");
+            tipoRetornoActual = T_ERROR;
         }
     }
     {dvar = 0;}
     bloque
     {
-        mostrarTdS();
+        //mostrarTdS();
         descargaContexto(niv);
         niv--;
         /* Restauramos el dvar global */
@@ -182,7 +189,7 @@ paramForm: /* epsilon */
 listParamForm: tipoSimp ID_
     {
         /* b04.c: Identificador de parametro repetido (en TDS local) */
-        printf("Entró en listaparámetros");
+        //printf("Entró en listaparámetros");
 
         // antes estaba en el else
         dvar += TALLA_TIPO_SIMPLE;
@@ -209,11 +216,15 @@ bloque: LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_
     {
         /* b04.c: Error de tipos en el "return" */
         //hay que detectar si es un array, para decirle que no es  un tipo que pueda devolver
-        if ($5 != T_ERROR) {
+        if (tipoRetornoActual == T_ERROR){
+            yyerror("No se puede comprobar el tipo del return porque no se instació la función");
+        }
+        else if ($5 != T_ERROR) {
             if ($5 != tipoRetornoActual) {
                 yyerror("Error de tipos en el 'return'");
             }
         }
+        
     }LLAVEC_;
 
 declaVarLocal: /* epsilon */
