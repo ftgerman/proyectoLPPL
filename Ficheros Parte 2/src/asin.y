@@ -2,11 +2,17 @@
 /**                        Analizador Sintáctico                            **/
 /*****************************************************************************/
 
+/*****************************************************************************/
+/**                        Jorge Rodríguez González                         **/
+/**                        Julián Cussianovich Porto                        **/
+/**                        Germán Soria Bustos                              **/
+/*****************************************************************************/
+
 %{
 #include <stdio.h>
 #include "header.h" // Fichero de cabeceras del proyecto
 #include "libtds.h"
-#include <string.h>
+#include <string.h> //añadido para contar cantidad de funciones main
 
 void yyerror(const char *s);
 extern int yylex();
@@ -14,7 +20,7 @@ extern int yylineno;
 extern char *yytext;
 
 int ref;    // referencia para arrays
-int tipoRetornoActual; //guardar el tipo de retorno de las funciones
+int tipoRetornoActual; //guardar el tipo de retorno de las funciones para errores del return
 int numMain;
 
 %}
@@ -142,9 +148,9 @@ tipoSimp:  INT_ {$$ = T_ENTERO;}
          | BOOL_ {$$ = T_LOGICO;}
          ;
 
-declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y desplazamiento anterior
+declaFunc: tipoSimp ID_//creamos un struct (no es necesario, se cambiará en siguientes versiones)
     {
-        tipoRetornoActual = $1;
+        tipoRetornoActual = $1;//var global
         $<stf>$.tipoRetorno = $1;
         $<stf>$.despAnterior = dvar; // Usamos para guardar el dvar actual 
         niv++;     
@@ -157,7 +163,7 @@ declaFunc: tipoSimp ID_//creamos un struct para guardar tipo de retorno y despla
     {
         //insertamos la función en el ámbito padre
         //printf("Entró en insertarfunción \n");
-        if (strcmp($2, "main") == 0) { numMain += 1; }
+        if (strcmp($2, "main") == 0) { numMain += 1; }//para contar funciones main, error de b04
 
         if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5)) {
             yyerror("Identificación de función repetido");
@@ -188,7 +194,7 @@ paramForm: /* epsilon */
 
 listParamForm: tipoSimp ID_
     {
-        /* b04.c: Identificador de parametro repetido (en TDS local) */
+        /* b04.c: Identificador de parametro repetido */
         //printf("Entró en listaparámetros");
 
         // antes estaba en el else
@@ -215,7 +221,6 @@ listParamForm: tipoSimp ID_
 bloque: LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
     {
         /* b04.c: Error de tipos en el "return" */
-        //hay que detectar si es un array, para decirle que no es  un tipo que pueda devolver
         if (tipoRetornoActual == T_ERROR){
             yyerror("No se puede comprobar el tipo del return porque no se instació la función");
         }
@@ -299,7 +304,7 @@ expre: expreLogic
              $$ = T_ERROR;
          } else if (sim.t == T_ARRAY || sim.ref >= 0) { 
              /* b03.c: i = x (x es array) -> Error variable debe ser simple */
-             /* Usamos sim.ref >= 0 para detectar funciones y arrays */
+             /* Usamos ref >= 0 para detectar funciones y arrays */
              yyerror("La variable debe ser de tipo simple"); 
              $$ = T_ERROR;
          } else if ($3 != T_ERROR) {
@@ -325,7 +330,7 @@ expre: expreLogic
              $$ = T_ERROR;
          } else {
              if (sim.t != T_ARRAY) {
-                 /* b01.c error 17 */
+                 /* b01.c error en arrays */
                  yyerror("La variable debe ser de tipo \"array\"");
                  $$ = T_ERROR;
              } else {
@@ -335,7 +340,7 @@ expre: expreLogic
                  
                  DIM dim = obtTdA(sim.ref);
                  if ($6 != T_ERROR && dim.telem != $6) {
-                     /* b01.c error 14 y 17 */
+                     /* b01.c comprobamos que el tipo del array es el mismo que el de expre */
                      yyerror("Error de tipos en la asignacion a un `array'");
                      $$ = T_ERROR;
                  } else {
@@ -376,7 +381,7 @@ expreRel: expreAd
         {  
             if ($1 != T_ERROR && $3 != T_ERROR) {
                 if ($1 != T_ENTERO || $3 != T_ENTERO) {
-                    yyerror("Error en \"expresion de relacional\"");
+                    yyerror("Error en \"expresion relacional\"");
                     $$ = T_ERROR;
                 } else $$ = T_LOGICO;
             } else $$ = T_ERROR;

@@ -1,5 +1,0 @@
-# proyectoLPPL
-
-Vamos equipo!!!
-
-hola
