@@ -43,7 +43,7 @@
 #define INCTOP       27
 #define DECTOP       28
 /*************************** Variables globales de uso en todo el compilador */
-int si;                       /* Desplazamiento en el Segmento de Codigo     */
+extern int si;                       /* Desplazamiento en el Segmento de Codigo     */
 
 /*****************************************************************************/
 typedef struct tipo_arg /****** Estructura para los argumentos del codigo 3D */

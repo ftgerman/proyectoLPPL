@@ -180,7 +180,7 @@ declaFunc: tipoSimp ID_
         //printf("Entró en insertarfunción \n");
         if (strcmp($2, "main") == 0) { numMain += 1; }//para contar funciones main, error de b04
 
-        if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5)) {
+        if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5.cent)) {
             yyerror("Identificación de función repetido");
             tipoRetornoActual = T_ERROR;
         }
@@ -200,7 +200,7 @@ declaFunc: tipoSimp ID_
 paramForm: /* epsilon */
     { 
         /* Si no hay parámetros, creamos entrada vacía en TdD */
-        $$ = insTdD(-1, T_VACIO); 
+        $$.cent = insTdD(-1, T_VACIO); 
     }
         | listParamForm
     { 
@@ -218,7 +218,7 @@ listParamForm: tipoSimp ID_
             yyerror("Identificador de parámetro repetido");
         } 
         /* Crear nueva entrada en TdD (final de la lista) */
-        $$ = insTdD(-1, $1);
+        $$.cent = insTdD(-1, $1);
     }
             | tipoSimp ID_ COMA_ listParamForm
     {   
@@ -229,7 +229,7 @@ listParamForm: tipoSimp ID_
                 yyerror("Identificador de parámetro repetido");
             }
         /* Insertar al principio de la lista existente */
-        $$ = insTdD($4, $1);
+        $$.cent = insTdD($4.cent, $1);
     }
              ;
 
@@ -333,8 +333,10 @@ expre: expreLogic
              } else {
                  $$.tipo = sim.t;
              }
-         } else {
+         } else { // si esta todo correcto
              $$.tipo = T_ERROR;
+             $$.d = sim.d; // el resultado de la asignación es la propia variable
+             emite(EASIG, crArgPos(niv, $3.d), crArgNul(), crArgPos(sim.n, sim.d));
          }
      }
      | ID_ CORA_ expre CORC_ ASIG_ expre 
@@ -354,7 +356,7 @@ expre: expreLogic
                  }
                  
                  DIM dim = obtTdA(sim.ref);
-                 if ($6.tipo != T_ERROR && dim.telem != $6) {
+                 if ($6.tipo != T_ERROR && dim.telem != $6.tipo) {
                      /* b01.c comprobamos que el tipo del array es el mismo que el de expre */
                      yyerror("Error de tipos en la asignacion a un `array'");
                      $$.tipo = T_ERROR;
@@ -440,24 +442,38 @@ expreUna: expreSufi
                     } else {
                         $$.tipo = T_LOGICO;
                         $$.d = creaVarTemp();
-                        emite(EASIG, crArgPos(niv,$$.d), , crArgEnt(0));
-                        emite()
+                        
+                        // Para negar x, hacemos 1-x
+                        // si x = 1 (true) -> 1-1 = 0 (false)
+                        // si x = 0 (false) -> 1-0 = 1 (true)
+                        emite(EDIF, crArgEnt(1), crArgPos(niv, $2.d), crArgPos(niv, $$.d));
                     } 
-                } else { 
+                } else { // + o -
                     if ($2.tipo != T_ENTERO) {
                         yyerror("Error en \"expresion unaria\"");
                         $$.tipo = T_ERROR;
                     } else {
                         $$.tipo = T_ENTERO;
-                        $$.d = creaVarTemp();
-                        emite($1, crArgEnt(0), crArgPos(niv, $2.d), crArgPos(niv, $$.d));
+
+                        if ($1 == ESIG) {
+                            // caso -x
+                            $$.d = creaVarTemp();
+                            emite(ESIG, crArgPos(niv, $2.d), crArgNul(), crArgPos(niv, $$.d));
+                        } 
+                        else {
+                            // caso +x
+                            $$.d = $2.d;
+                        } 
                     }
                 }
             } else $$.tipo = T_ERROR;
         }
         ;
 
-expreSufi: const { $$.tipo = $1.tipo; }
+expreSufi: const { $$.tipo = $1.tipo; 
+                   $$.d = creaVarTemp();
+                   emite(EASIG, crArgEnt($1.cent), crArgNul(), crArgPos(niv, $$.d));
+                 }
          | PARA_ expre PARC_ { $$ = $2; }
          | ID_ 
          {
@@ -485,7 +501,7 @@ expreSufi: const { $$.tipo = $1.tipo; }
                      yyerror("El indice del \"array\" debe ser entero");
                  
                  DIM dim = obtTdA(sim.ref);
-                 $$ = dim.telem;
+                 $$.tipo = dim.telem;
              }
          }
          | ID_ PARA_ paramAct PARC_ 
@@ -504,21 +520,21 @@ expreSufi: const { $$.tipo = $1.tipo; }
                      $$.tipo = T_ERROR;
                  } else {
                      /* Es una función válida */
-                     if (!cmpDom(sim.ref, $3)) {
+                     if (!cmpDom(sim.ref, $3.cent)) {
                          yyerror("Error en el dominio de los parametros actuales");
                      }
-                     $$ = sim.t;
+                     $$.tipo = sim.t;
                  }
              }
          }
          ;
 
-paramAct: /* epsilon */ { $$ = insTdD(-1, T_VACIO); }//no hay parámetros
+paramAct: /* epsilon */ { $$.cent = insTdD(-1, T_VACIO); }//no hay parámetros
         | listParamAct  { $$ = $1; }
         ;
 
-listParamAct: expre                    { $$ = insTdD(-1, $1); }//el primero es el último
-            | expre COMA_ listParamAct { $$ = insTdD($3, $1); }//tomo la referencia del anterior que está en dolar1
+listParamAct: expre                    { $$.cent = insTdD(-1, $1.tipo); }//el primero es el último
+            | expre COMA_ listParamAct { $$.cent = insTdD($3.cent, $1.tipo); }//tomo la referencia del anterior que está en dolar1
             ;
 
 opLogic:   AND_ { $$ = AND_; }
