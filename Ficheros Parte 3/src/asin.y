@@ -77,7 +77,7 @@ programa:{
             numMain = 0;
             si=0;// damos valor a siguiente instruccion
 
-            emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));//vamos al main
+            emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));//vamos al main, habrá que usar un crealans
         } listDecla {
                 
             SIMB sim_main = obtTdS("main");
@@ -128,6 +128,8 @@ declaVar:  tipoSimp ID_ PUNTOCOMA_
              if (! insTdS($2, VARIABLE, tipo, niv, dvar, -1)){
                 yyerror("Identificador de variable repetido");
             } else{
+                SIMB s = obtTdS($2);
+                emite(EASIG, crArgEnt($4.cent), crArgNul(), crArgPos(s.n, s.d));//asignamos valor de dolar4 que es una constante a la variable ID_
                 dvar += talla;
             }
         }
@@ -331,7 +333,10 @@ expre: expreLogic
                  yyerror("Error de tipos en la \"asignacion\"");
                  $$ = T_ERROR;
              } else {
-                 $$ = sim.t;
+                 $$.tipo = sim.t;
+                 $$.d = sim.d;
+                 emite(EASIG, crArgPos(niv, $3.d), crArgNul(), crArgPos(sim.n, sim.d));
+
              }
          } else {
              $$ = T_ERROR;
@@ -342,24 +347,25 @@ expre: expreLogic
          SIMB sim = obtTdS($1);
          if (sim.t == T_ERROR) {
              yyerror("Objeto no declarado");
-             $$ = T_ERROR;
+             $$.tipo = T_ERROR;
          } else {
              if (sim.t != T_ARRAY) {
                  /* b01.c error en arrays */
                  yyerror("La variable debe ser de tipo \"array\"");
-                 $$ = T_ERROR;
+                 $$.tipo = T_ERROR;
              } else {
-                 if ($3 != T_ENTERO && $3 != T_ERROR) {
+                 if ($3.tipo != T_ENTERO && $3.tipo != T_ERROR) {
                      yyerror("El indice del \"array\" debe ser entero");
                  }
                  
                  DIM dim = obtTdA(sim.ref);
-                 if ($6 != T_ERROR && dim.telem != $6) {
+                 if ($6.tipo != T_ERROR && dim.telem != $6.tipo) {
                      /* b01.c comprobamos que el tipo del array es el mismo que el de expre */
                      yyerror("Error de tipos en la asignacion a un `array'");
-                     $$ = T_ERROR;
+                     $$.tipo = T_ERROR;
                  } else {
-                     $$ = dim.telem;
+                     $$.tipo = dim.telem;
+                     emite(EVA, crArgPos(sim.n, sim.d), crArgPos(niv, $3.d), crArgPos(niv, $6.d));
                  }
              }
          }
