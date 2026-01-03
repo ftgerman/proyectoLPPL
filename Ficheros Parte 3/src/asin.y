@@ -338,10 +338,8 @@ expre: expreLogic
                  emite(EASIG, crArgPos(niv, $3.d), crArgNul(), crArgPos(sim.n, sim.d));
 
              }
-         } else { // si esta todo correcto
+         } else {
              $$.tipo = T_ERROR;
-             $$.d = sim.d; // el resultado de la asignación es la propia variable
-             emite(EASIG, crArgPos(niv, $3.d), crArgNul(), crArgPos(sim.n, sim.d));
          }
      }
      | ID_ CORA_ expre CORC_ ASIG_ expre 
@@ -350,25 +348,19 @@ expre: expreLogic
          if (sim.t == T_ERROR) {
              yyerror("Objeto no declarado");
              $$.tipo = T_ERROR;
-             $$.tipo = T_ERROR;
          } else {
              if (sim.t != T_ARRAY) {
                  /* b01.c error en arrays */
                  yyerror("La variable debe ser de tipo \"array\"");
                  $$.tipo = T_ERROR;
-                 $$.tipo = T_ERROR;
              } else {
-                 if ($3.tipo != T_ENTERO && $3.tipo != T_ERROR) {
                  if ($3.tipo != T_ENTERO && $3.tipo != T_ERROR) {
                      yyerror("El indice del \"array\" debe ser entero");
                  }
-                 
                  DIM dim = obtTdA(sim.ref);
-                 if ($6.tipo != T_ERROR && dim.telem != $6.tipo) {
                  if ($6.tipo != T_ERROR && dim.telem != $6.tipo) {
                      /* b01.c comprobamos que el tipo del array es el mismo que el de expre */
                      yyerror("Error de tipos en la asignacion a un `array'");
-                     $$.tipo = T_ERROR;
                      $$.tipo = T_ERROR;
                  } else {
                      $$.tipo = dim.telem;
