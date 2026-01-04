@@ -71,13 +71,18 @@ int numMain;
 /* --- REGLAS DE LA GRAMATICA --- */
 
 programa:{
+            //variables globales
             niv = 0;
             cargaContexto(niv);
             dvar = 0;
             numMain = 0;
-            si=0;// damos valor a siguiente instruccion
+            si=0;
 
-            //para ir al main
+            //reservamos espaio para globales
+            //haríamos un crealans de si, pero como si vale 0, me lo salto
+            emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
+
+            //saltamos a main
             $<cent>$ = creaLans(si);
             emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
         } listDecla {
@@ -86,7 +91,13 @@ programa:{
             if (sim_main.t == T_ERROR) {
                 yyerror("Debe existir una función 'main'");
             }else{
+                //completamos dirección de main
                 completaLans($<cent>1, crArgEtq(sim_main.d));
+
+                //commpletamos reserva de espacio para variables globales
+                int lista_globales = creaLans(0);
+                completaLans(lista_globales, crArgEnt(dvar));
+
             }
             if (numMain > 1){yyerror("El programa tiene más de un main");}
             //printf("Num mains %d \n", numMain);
@@ -592,6 +603,10 @@ expreSufi: const { $$.tipo = $1.tipo;
                  
                  DIM dim = obtTdA(sim.ref);
                  $$.tipo = dim.telem;
+
+                 //creamos var temporal para emitir EAV
+                 $$.d = creaVarTemp();
+                 emite(EAV, crArgPos(sim.n, sim.d), crArgPos(niv, $3.d), crArgPos(niv, $$.d));
              }
          }
          | ID_ PARA_ paramAct PARC_ 
