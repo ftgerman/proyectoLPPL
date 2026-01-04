@@ -431,7 +431,23 @@ expreLogic: expreIgual
                   if ($1.tipo != T_LOGICO || $3.tipo != T_LOGICO) {
                       yyerror("Error en \"expresion logica\"");
                       $$.tipo = T_ERROR;
-                  } else $$.tipo = T_LOGICO;
+                  } else {
+                      $$.tipo = T_LOGICO;
+                      $$.d = creaVarTemp();
+                      if ($2 == AND_){
+                        //AND implementado como multiplicación
+                        emite(EMULT, crArgPos(niv, $1.d), crArgPos(niv, $3.d), crArgPos(niv, $$.d));
+                      }
+                      else{
+                        // OR como suma, revisando si es menor que 1 o no
+                        emite(ESUM, crArgPos(niv, $1.d), crArgPos(niv, $3.d), crArgPos(niv, $$.d));
+                        //si el resultado es <=1, saltamos a fin, lo dejamos en 0
+                        emite(EMENEQ, crArgPos(niv, $$.d), crArgEnt(1), crArgEtq(si + 2));
+                        //si no, saltamos a si+2 y le ponemos valor 1
+                        emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.d));
+
+                      }
+                  }
               } else $$.tipo = T_ERROR;
           }
           ;
@@ -444,7 +460,16 @@ expreIgual: expreRel
                     //printf("Entro en operando igual \n");
                       yyerror("Error en \"expresion de igualdad\"");
                       $$.tipo = T_ERROR;
-                  } else $$.tipo = T_LOGICO;
+                  } else {
+                    $$.tipo = T_LOGICO;
+                    $$.d = creaVarTemp();
+                    //asumiremos que la expresión se avalúa a verdadero
+                    emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.d));
+                    //ahora, si se cumple, terminamos, saltando la asignación a 0
+                    emite($2, crArgPos(niv, $1.d), crArgPos(niv, $3.d), crArgEtq(si + 2));
+                    //si no se cumplió, se ejetutará la asignación a 0 porque era falso
+                    emite(EASIG, crArgEnt(0), crArgNul(), crArgPos(niv, $$.d));
+                  }
               } else $$.tipo = T_ERROR;
           }
           ;
@@ -456,7 +481,16 @@ expreRel: expreAd
                 if ($1.tipo != T_ENTERO || $3.tipo != T_ENTERO) {
                     yyerror("Error en \"expresion relacional\"");
                     $$.tipo = T_ERROR;
-                } else $$.tipo = T_LOGICO;
+                } else {
+                    $$.tipo = T_LOGICO;
+                    $$.d = creaVarTemp();
+                    //asumiremos que es true
+                    emite(EASIG, crArgEnt(1), crArgNul(), crArgPos(niv, $$.d));
+                    //evaluamos con el código de la operación que ha subido hasta dolar2
+                    emite($2, crArgPos(niv, $1.d), crArgPos(niv, $3.d), crArgEtq(si + 2));
+                    //si no saltó, asignamos a 0 porque era falso
+                    emite(EASIG, crArgEnt(0), crArgNul(), crArgPos(niv, $$.d));
+                }
             } else $$.tipo = T_ERROR;
         }
         ;
