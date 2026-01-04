@@ -77,22 +77,24 @@ programa:{
             numMain = 0;
             si=0;// damos valor a siguiente instruccion
 
-            emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));//vamos al main, habrá que usar un crealans
+            //para ir al main
+            $<cent>$ = creaLans(si);
+            emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
         } listDecla {
                 
             SIMB sim_main = obtTdS("main");
             if (sim_main.t == T_ERROR) {
                 yyerror("Debe existir una función 'main'");
+            }else{
+                completaLans($<cent>1, crArgEtq(sim_main.d));
             }
             if (numMain > 1){yyerror("El programa tiene más de un main");}
             //printf("Num mains %d \n", numMain);
             //mostrarTdS();   
 
-            //ahora deberíamos rellanar el salto inicial
-
 
             if (numErrores == 0) {
-            volcarCodigo("salida"); // El nombre suele ser el del fichero de entrada
+            volcarCodigo("salida"); 
         }
         }
         ;
@@ -182,7 +184,8 @@ declaFunc: tipoSimp ID_
         //printf("Entró en insertarfunción \n");
         if (strcmp($2, "main") == 0) { numMain += 1; }//para contar funciones main, error de b04
 
-        if (!insTdS($2, FUNCION, $1, niv - 1, -1, $5.cent)) {
+        //ahora en el desplazamiento de la función guardamos la instrucción en la que empieza
+        if (!insTdS($2, FUNCION, $1, niv - 1, si, $5.cent)) {
             yyerror("Identificación de función repetido");
             tipoRetornoActual = T_ERROR;
         }
@@ -277,6 +280,9 @@ instEntSal: READ_ PARA_ ID_ PARC_ PUNTOCOMA_
         } else if (sim.t != T_ENTERO) {
             yyerror("El argumento del \"read\" debe ser \"entero\"");
         }
+
+        //si todo correcto, genero código
+        emite(EREAD, crArgNul(), crArgNul(), crArgPos(sim.n, sim.d));
     }
     | PRINT_ PARA_ expre PARC_ PUNTOCOMA_
     {
@@ -284,6 +290,9 @@ instEntSal: READ_ PARA_ ID_ PARC_ PUNTOCOMA_
         if ($3.tipo != T_ERROR && $3.tipo != T_ENTERO) {
             yyerror("La expresion del \"print\" debe ser \"entera\"");
         }
+
+        //si todo está correcto
+        emite(EWRITE, crArgNul(), crArgNul(), crArgPos(niv, $3.d));
     };
 
 instSelec: IF_ PARA_ expre {
@@ -291,21 +300,65 @@ instSelec: IF_ PARA_ expre {
         if ($3.tipo != T_ERROR && $3.tipo != T_LOGICO) {
             yyerror("La expresion del \"if\" debe ser \"logica\"");
         }
-    } PARC_ inst ELSE_ inst
+        //si la condición es falsa, debo saltar al else
+        $<cent>$ = creaLans(si);
+        emite(EIGUAL, crArgPos(niv, $3.d), crArgEnt(0), crArgEtq(-1));
+    } PARC_ inst ELSE_ 
+    {
+        //despues de hacer el if, debe saltarse el else y terminar, pero como no sabemos donde termina aun
+        $<cent>$ = creaLans(si);
+        emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+
+        //ahora sabemos donde empieza el else
+        completaLans($<cent>4, crArgEtq(si));
+    }inst
+    {
+        // completamos el esaldo de fin delif true
+        completaLans($<cent>8, crArgEtq(si));
+    }
     ;
 
-instIter:  FOR_ PARA_ expreOP PUNTOCOMA_ expre
+instIter:  FOR_ PARA_ expreOP PUNTOCOMA_
+    { 
+        //guardamos posición de evaluar condición
+        $<cent>$ = si; 
+    }
+    expre
     {
         /* b03.c: La expresion del "for" debe ser "logica" (la del medio $5) */
-        if ($5.tipo != T_ERROR && $5.tipo != T_LOGICO) {
+        if ($6.tipo != T_ERROR && $6.tipo != T_LOGICO) {
             yyerror("La expresion del \"for\" debe ser \"logica\"");
         }
-    } PUNTOCOMA_ expreOP PARC_ inst
+        // si la condión es falsa, vamos al fin
+        $<cent>$ = creaLans(si);
+        emite(EIGUAL, crArgPos(niv, $6.d), crArgEnt(0), crArgEtq(-1));
+        
+        //salto al cuerpo
+        $<cent>1 = creaLans(si);
+        emite(GOTOS, crArgNul(), crArgNul(), crArgEtq(-1));
+        
+        // marco inicio del incremento
+        $<cent>2 = si;
+    } PUNTOCOMA_ expreOP PARC_
+    {
+        // despues de incrementar, evaluo condición
+        emite(GOTOS, crArgNul(), crArgNul(), crArgEtq($<cent>5));
+        
+        // Aquí empieza el CUERPO. Rellenar el salto a CUERPO ($7.dir)
+        completaLans($<cent>1, crArgEtq(si));
+    }
+    inst
     {
         /* b02.c: La `expreOp' del `for' debe ser de tipo simple */
-        if ($3.tipo == T_ARRAY || $8.tipo == T_ARRAY || $3.tipo == T_ERROR || $8.tipo == T_ERROR) {
+        if ($3.tipo == T_ARRAY || $9.tipo == T_ARRAY || $3.tipo == T_ERROR || $9.tipo == T_ERROR) {
                 yyerror("La `expreOp' del `for' debe ser de tipo simple");
         }
+
+        //vamos al incremento
+        emite(GOTOS, crArgNul(), crArgNul(), crArgEtq($<cent>2));
+
+        //completamos sabiendo el fin
+        completaLans($<cent>7, crArgEtq(si));
     
     };
 
