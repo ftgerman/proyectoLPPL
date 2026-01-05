@@ -270,6 +270,14 @@ bloque: LLAVEA_
             if ($6.tipo != tipoRetornoActual) {
                 yyerror("Error de tipos en el 'return'");
             }
+            
+            // Si la función devuelve algo, hay que ponerlo en el valor de retorno 
+            // La dirección es: FP - (Enlaces + Parámetros + 1) 
+            if ($6.tipo != T_VACIO) {
+                INF inf = obtTdD(-1); 
+                int desp_retorno = -(TALLA_SEGENLACES + inf.tsp + 1);
+                emite(EASIG, crArgPos(niv, $6.d), crArgNul(), crArgPos(niv, desp_retorno));
+            }
         }
 
         // Completar reserva espacio
@@ -617,9 +625,14 @@ expreSufi: const { $$.tipo = $1.tipo;
                 yyerror("Objeto no declarado");
                 $$.tipo = T_ERROR;
              } else {
-                //guardamos tipo y desplazamiento para subirlo GCI
                 $$.tipo = sim.t;
-                $$.d = sim.d;
+                $$.d = creaVarTemp(); // Creamos una var temporal local
+                // Copiamos el valor de la variable (sea global o local) al temporal
+                // Antes, si pasabamos el desplazamiento, pero cuando intentabamos usar una var global desde una funcion, 
+                // con su desplazamiento, al estar en distintos niveles, no funcionaba.
+                emite(EASIG, crArgPos(sim.n, sim.d), crArgNul(), crArgPos(niv, $$.d));
+                // Creo que tambien se podria hacer, subiendo el nivel al que corresponde la var global
+                // Pero necesitariamos añadir un int n la estructura atributo.
              }
          }
          | ID_ CORA_ expre CORC_ 
@@ -643,28 +656,44 @@ expreSufi: const { $$.tipo = $1.tipo;
                  emite(EAV, crArgPos(sim.n, sim.d), crArgPos(niv, $3.d), crArgPos(niv, $$.d));
              }
          }
-         | ID_ PARA_ paramAct PARC_ 
+         | ID_ 
+         {
+            
+            SIMB sim = obtTdS($1);
+            if (sim.t == T_ERROR) yyerror("Función no declarada");
+
+            // Reservar espacio para el retorno (si no es void)
+            if (sim.t != T_VACIO && sim.t != T_ERROR) {
+                emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(1));
+            }
+            
+
+         }
+         PARA_ paramAct PARC_ 
          {
              SIMB sim = obtTdS($1);
-             if (sim.t == T_ERROR) {
-                 yyerror("Función no declarada");
-                 $$.tipo = T_ERROR;
-             } else {
-                 
-                 if (sim.ref == -1 && sim.t != T_ARRAY) {//si no es array pero ref == -1
-                     yyerror("El identificador no es una función");
-                     $$.tipo = T_ERROR;
-                 } else if (sim.t == T_ARRAY) {
-                     yyerror("El identificador no es una función");
-                     $$.tipo = T_ERROR;
-                 } else {
-                     /* Es una función válida */
-                     if (!cmpDom(sim.ref, $3.cent)) {
-                         yyerror("Error en el dominio de los parametros actuales");
-                     }
-                     $$.tipo = sim.t;
-                 }
-             }
+
+            // cmpDom recorre ambas listas y comprueba que tengan la misma cantidad, mismo orden y mismos tipos.
+             if (!cmpDom(sim.ref, $4.cent)) {
+                yyerror("Error en el dominio de los parametros actuales");
+            }
+                
+            // Llamada a la funcion
+            emite(CALL, crArgNul(), crArgNul(), crArgEtq(sim.d));
+
+            // Al volver de la funcion, ya no necesitamos los argumentos, así que los limpiamos.
+            INF inf = obtTdD(sim.ref);
+            if (inf.tsp > 0) {
+                emite(DECTOP, crArgNul(), crArgNul(), crArgEnt(inf.tsp));
+            }
+
+            // Gestionar retorno
+            $$.tipo = sim.t;
+            if (sim.t != T_VACIO) {
+                // El resultado está en la cima. Lo pasamos a un temporal
+                $$.d = creaVarTemp();
+                emite(EPOP, crArgNul(), crArgNul(), crArgPos(niv, $$.d));
+            }
          }
          ;
 
@@ -672,9 +701,24 @@ paramAct: /* epsilon */ { $$.cent = insTdD(-1, T_VACIO); }//no hay parámetros
         | listParamAct  { $$ = $1; }
         ;
 
-listParamAct: expre                    { $$.cent = insTdD(-1, $1.tipo); }//el primero es el último
-            | expre COMA_ listParamAct { $$.cent = insTdD($3.cent, $1.tipo); }//tomo la referencia del anterior que está en dolar1
-            ;
+listParamAct: expre 
+    { 
+        // Apilamos el parámetro
+        emite(EPUSH, crArgNul(), crArgNul(), crArgPos(niv, $1.d));
+    }
+    COMA_ listParamAct 
+    { 
+        // Creamos lista con los tipos de los parámetros para comprobar más arriba si son los mismos que los definidos en la TDS
+        $$.cent = insTdD($4.cent, $1.tipo);
+    }
+    | expre 
+    { 
+        // Último parámetro
+        emite(EPUSH, crArgNul(), crArgNul(), crArgPos(niv, $1.d));
+        
+        $$.cent = insTdD(-1, $1.tipo);
+    }
+    ;
 
 opLogic:   AND_ { $$ = AND_; }
          | OR_  { $$ = OR_; }
