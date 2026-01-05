@@ -23,7 +23,7 @@ extern char *yytext;
 int ref;    // referencia para arrays
 int tipoRetornoActual; //guardar el tipo de retorno de las funciones para errores del return
 int numMain;
-
+int esMain; 
 %}
 
 %union{
@@ -193,7 +193,7 @@ declaFunc: tipoSimp ID_
     {
         //insertamos la función en el ámbito padre
         //printf("Entró en insertarfunción \n");
-        if (strcmp($2, "main") == 0) { numMain += 1; }//para contar funciones main, error de b04
+        if (strcmp($2, "main") == 0) { numMain += 1; esMain = 1; } else { esMain = 0; }//para contar funciones main, error de b04
 
         //ahora en el desplazamiento de la función guardamos la instrucción en la que empieza
         if (!insTdS($2, FUNCION, $1, niv - 1, si, $5.cent)) {
@@ -249,19 +249,52 @@ listParamForm: tipoSimp ID_
     }
              ;
 
-bloque: LLAVEA_ declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
+bloque: LLAVEA_ 
+    {
+        emite(PUSHFP, crArgNul(), crArgNul(), crArgNul());
+        emite(FPTOP, crArgNul(), crArgNul(), crArgNul());
+        
+        // Reservar espacio para variables locales y temporales
+        $<cent>$ = creaLans(si);
+        emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
+
+
+    }
+    declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
     {
         /* b04.c: Error de tipos en el "return" */
         if (tipoRetornoActual == T_ERROR){
             yyerror("No se puede comprobar el tipo del return porque no se instació la función");
         }
-        else if ($5.tipo != T_ERROR) {
-            if ($5.tipo != tipoRetornoActual) {
+        else if ($6.tipo != T_ERROR) {
+            if ($6.tipo != tipoRetornoActual) {
                 yyerror("Error de tipos en el 'return'");
             }
         }
-        
-    }LLAVEC_;
+
+        // Completar reserva espacio
+        completaLans($<cent>2, crArgEnt(dvar));
+
+        // Decrementa la cima de la pila en res posiciones -- Eliminar var locales y temp
+        emite(DECTOP, crArgNul(), crArgNul(), crArgEnt(dvar));
+
+        // Descargamos enlaces de control. Restauramos fp gracias al valor guardado con PUSHFP.
+        emite(FPPOP, crArgNul(), crArgNul(), crArgEnt(dvar));
+
+        // FIN si es main, RET sino.
+        if (esMain == 1) { 
+             emite(FIN, crArgNul(), crArgNul(), crArgNul()); 
+        } else {
+             emite(RET, crArgNul(), crArgNul(), crArgNul()); 
+        }
+
+        /* G. Mostrar la información de la función en la TdS */
+        if (verTdS) mostrarTdS();
+
+
+    }
+    LLAVEC_
+    ;
 
 declaVarLocal: /* epsilon */
              | declaVarLocal declaVar
@@ -303,6 +336,7 @@ instEntSal: READ_ PARA_ ID_ PARC_ PUNTOCOMA_
         }
 
         //si todo está correcto
+        // usamos niv, pero si estamos imprimiendo el valor de una variable que esta en otro nivel (ej: desde funcion imprimimos var )
         emite(EWRITE, crArgNul(), crArgNul(), crArgPos(niv, $3.d));
     };
 
@@ -406,7 +440,7 @@ expre: expreLogic
              $$.tipo = T_ERROR;
          }
      }
-     | ID_ CORA_ expre CORC_ ASIG_ expre 
+     | ID_ CORA_ expre CORC_ ASIG_ expre // vector[i] = valor
      {
          SIMB sim = obtTdS($1);
          if (sim.t == T_ERROR) {
@@ -665,7 +699,7 @@ opMul:     POR_ { $$ = EMULT; }
          ;
 
 opUna:     MAS_   { $$ = ESUM; }
-         | MENOS_ { $$ = EDIF; }
+         | MENOS_ { $$ = ESIG; } // Aqui ponia EDIF
          | NOT_   { $$ = NOT_; }
          ;
 
