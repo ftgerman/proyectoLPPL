@@ -22,8 +22,7 @@ extern char *yytext;
 
 int ref;    // referencia para arrays
 int tipoRetornoActual; //guardar el tipo de retorno de las funciones para errores del return
-int numMain;
-int esMain; 
+int numMain; 
 %}
 
 %union{
@@ -193,7 +192,7 @@ declaFunc: tipoSimp ID_
     {
         //insertamos la función en el ámbito padre
         //printf("Entró en insertarfunción \n");
-        if (strcmp($2, "main") == 0) { numMain += 1; esMain = 1; } else { esMain = 0; }//para contar funciones main, error de b04
+        if (strcmp($2, "main") == 0) { numMain += 1; }//para contar funciones main, error de b04
 
         //ahora en el desplazamiento de la función guardamos la instrucción en la que empieza
         if (!insTdS($2, FUNCION, $1, niv - 1, si, $5.cent)) {
@@ -204,7 +203,7 @@ declaFunc: tipoSimp ID_
     {dvar = 0;}
     bloque
     {
-        mostrarTdS();
+        //mostrarTdS();
         descargaContexto(niv);
         niv--;
         /* Restauramos el dvar global */
@@ -251,6 +250,7 @@ listParamForm: tipoSimp ID_
 
 bloque: LLAVEA_ 
     {
+        //cargar enlaces de control
         emite(PUSHFP, crArgNul(), crArgNul(), crArgNul());
         emite(FPTOP, crArgNul(), crArgNul(), crArgNul());
         
@@ -262,6 +262,7 @@ bloque: LLAVEA_
     }
     declaVarLocal listInst RETURN_ expre PUNTOCOMA_ 
     {
+        INF inf = obtTdD(-1); //información sobre función actual
         /* b04.c: Error de tipos en el "return" */
         if (tipoRetornoActual == T_ERROR){
             yyerror("No se puede comprobar el tipo del return porque no se instació la función");
@@ -274,30 +275,30 @@ bloque: LLAVEA_
             // Si la función devuelve algo, hay que ponerlo en el valor de retorno 
             // La dirección es: FP - (Enlaces + Parámetros + 1) 
             if ($6.tipo != T_VACIO) {
-                INF inf = obtTdD(-1); 
                 int desp_retorno = -(TALLA_SEGENLACES + inf.tsp + 1);
                 emite(EASIG, crArgPos(niv, $6.d), crArgNul(), crArgPos(niv, desp_retorno));
             }
+
+            // Completar reserva espacio
+            completaLans($<cent>2, crArgEnt(dvar));
+
+            emite(TOPFP, crArgNul(), crArgNul(), crArgNul()); // SP = FP (Liberar locales)
+
+            // Descargamos enlaces de control
+            emite(FPPOP, crArgNul(), crArgNul(), crArgNul());
+
+            // FIN si es main, RET sino.
+            if (strcmp(inf.nom, "main") == 0) { 
+                emite(FIN, crArgNul(), crArgNul(), crArgNul()); 
+            } else {
+                emite(RET, crArgNul(), crArgNul(), crArgNul()); 
+            }
+
+            /* G. Mostrar la información de la función en la TdS */
+            if (verTdS) mostrarTdS();
         }
 
-        // Completar reserva espacio
-        completaLans($<cent>2, crArgEnt(dvar));
-
-        // Decrementa la cima de la pila en res posiciones -- Eliminar var locales y temp
-        emite(DECTOP, crArgNul(), crArgNul(), crArgEnt(dvar));
-
-        // Descargamos enlaces de control. Restauramos fp gracias al valor guardado con PUSHFP.
-        emite(FPPOP, crArgNul(), crArgNul(), crArgEnt(dvar));
-
-        // FIN si es main, RET sino.
-        if (esMain == 1) { 
-             emite(FIN, crArgNul(), crArgNul(), crArgNul()); 
-        } else {
-             emite(RET, crArgNul(), crArgNul(), crArgNul()); 
-        }
-
-        /* G. Mostrar la información de la función en la TdS */
-        if (verTdS) mostrarTdS();
+        
 
 
     }
@@ -626,13 +627,24 @@ expreSufi: const { $$.tipo = $1.tipo;
                 $$.tipo = T_ERROR;
              } else {
                 $$.tipo = sim.t;
-                $$.d = creaVarTemp(); // Creamos una var temporal local
-                // Copiamos el valor de la variable (sea global o local) al temporal
-                // Antes, si pasabamos el desplazamiento, pero cuando intentabamos usar una var global desde una funcion, 
-                // con su desplazamiento, al estar en distintos niveles, no funcionaba.
-                emite(EASIG, crArgPos(sim.n, sim.d), crArgNul(), crArgPos(niv, $$.d));
-                // Creo que tambien se podria hacer, subiendo el nivel al que corresponde la var global
-                // Pero necesitariamos añadir un int n la estructura atributo.
+                // --- MODIFICACIÓN: Gestión de Globales ---
+                if (sim.n == 0 && niv > 0) { 
+                    // Si es global (nivel 0) y estamos en una función (niv > 0):
+                    // 1. Creamos una temporal local
+                    int temp = creaVarTemp();
+                    
+                    // 2. Emitimos una instrucción para copiar el valor global a la local
+                    //    Global: p(0, sim.d) -> Local: p(niv, temp)
+                    emite(EASIG, crArgPos(sim.n, sim.d), crArgNul(), crArgPos(niv, temp));
+                    
+                    // 3. Devolvemos la temporal
+                    $$.d = temp;
+                } else {
+                    // Si es local o estamos en el main (niv 0), se usa tal cual
+                    // no hace falta crear una temporal en este caso
+                    $$.d = sim.d;
+                }
+
              }
          }
          | ID_ CORA_ expre CORC_ 
@@ -658,42 +670,58 @@ expreSufi: const { $$.tipo = $1.tipo;
          }
          | ID_ 
          {
-            
             SIMB sim = obtTdS($1);
-            if (sim.t == T_ERROR) yyerror("Función no declarada");
-
             // Reservar espacio para el retorno (si no es void)
             if (sim.t != T_VACIO && sim.t != T_ERROR) {
-                emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(1));
+                emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(1));//por talla simple
             }
             
 
          }
          PARA_ paramAct PARC_ 
          {
-             SIMB sim = obtTdS($1);
+            SIMB sim = obtTdS($1);
 
-            // cmpDom recorre ambas listas y comprueba que tengan la misma cantidad, mismo orden y mismos tipos.
-             if (!cmpDom(sim.ref, $4.cent)) {
-                yyerror("Error en el dominio de los parametros actuales");
-            }
-                
-            // Llamada a la funcion
-            emite(CALL, crArgNul(), crArgNul(), crArgEtq(sim.d));
+            if (sim.t == T_ERROR) {
+                 yyerror("Función no declarada");
+                 $$.tipo = T_ERROR;
+             } else {
+                 
+                 if (sim.ref == -1 && sim.t != T_ARRAY) {//si no es array pero ref == -1
+                     yyerror("El identificador no es una función");
+                     $$.tipo = T_ERROR;
+                 } else if (sim.t == T_ARRAY) {
+                     yyerror("El identificador no es una función");
+                     $$.tipo = T_ERROR;
+                 } else {
+                     /* Es una función válida */
+                     if (!cmpDom(sim.ref, $4.cent)) {
+                         yyerror("Error en el dominio de los parametros actuales");
+                     }
+                     $$.tipo = sim.t;
 
-            // Al volver de la funcion, ya no necesitamos los argumentos, así que los limpiamos.
-            INF inf = obtTdD(sim.ref);
-            if (inf.tsp > 0) {
-                emite(DECTOP, crArgNul(), crArgNul(), crArgEnt(inf.tsp));
-            }
+                     // Obtenemos la información de la función desde la TdD usando la referencia
+                    INF inf = obtTdD(sim.ref); 
 
-            // Gestionar retorno
-            $$.tipo = sim.t;
-            if (sim.t != T_VACIO) {
-                // El resultado está en la cima. Lo pasamos a un temporal
-                $$.d = creaVarTemp();
-                emite(EPOP, crArgNul(), crArgNul(), crArgPos(niv, $$.d));
-            }
+                    // --- GENERACIÓN DE CÓDIGO LLAMADA ---
+                    // 1. Llamar a la función
+                    emite(CALL, crArgNul(), crArgNul(), crArgEtq(sim.d));
+                    
+                    // 2. Limpiar argumentos de la pila (DECTOP)
+                    // Usamos inf.tsp en lugar de sim.tsp
+                    if (inf.tsp > 0) {
+                        emite(DECTOP, crArgNul(), crArgNul(), crArgEnt(inf.tsp));
+                    }
+
+                    // 3. Recuperar el resultado
+                    $$.tipo = sim.t;
+                    if (sim.t != T_VACIO) {
+                        // El resultado está en la cima. Lo pasamos a un temporal
+                        $$.d = creaVarTemp();
+                        emite(EPOP, crArgNul(), crArgNul(), crArgPos(niv, $$.d));
+                    }
+                 }
+             }
          }
          ;
 
