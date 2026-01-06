@@ -77,7 +77,7 @@ programa:{
             numMain = 0;
             si=0;
 
-            //reservamos espaio para globales
+            //reservamos espacio para globales
             //haríamos un crealans de si, pero como si vale 0, me lo salto
             emite(INCTOP, crArgNul(), crArgNul(), crArgEnt(-1));
 
@@ -93,7 +93,7 @@ programa:{
                 //completamos dirección de main
                 completaLans($<cent>1, crArgEtq(sim_main.d));
 
-                //commpletamos reserva de espacio para variables globales
+                //completamos reserva de espacio para variables globales
                 int lista_globales = creaLans(0);
                 completaLans(lista_globales, crArgEnt(dvar));
 
@@ -226,8 +226,6 @@ listParamForm: tipoSimp ID_
     {
         /* b04.c: Identificador de parametro repetido */
         //printf("Entró en listaparámetros");
-
-        // antes estaba en el else
         dvar += TALLA_TIPO_SIMPLE;
         if (!insTdS($2, PARAMETRO, $1, niv, -dvar, -1)) {
             yyerror("Identificador de parámetro repetido");
@@ -367,7 +365,7 @@ instSelec: IF_ PARA_ expre {
         completaLans($<cent>4, crArgEtq(si));
     }inst
     {
-        // completamos el esaldo de fin delif true
+        // completamos el salto del if true al final
         completaLans($<cent>8, crArgEtq(si));
     }
     ;
@@ -398,7 +396,7 @@ instIter:  FOR_ PARA_ expreOP PUNTOCOMA_
         // despues de incrementar, evaluo condición
         emite(GOTOS, crArgNul(), crArgNul(), crArgEtq($<cent>5));
         
-        // Aquí empieza el CUERPO. Rellenar el salto a CUERPO ($7.dir)
+        // Aquí empieza el CUERPO. Rellenar el salto a CUERPO (dolar7.dir)
         completaLans($<cent>1, crArgEtq(si));
     }
     inst
@@ -627,7 +625,7 @@ expreSufi: const { $$.tipo = $1.tipo;
                 $$.tipo = T_ERROR;
              } else {
                 $$.tipo = sim.t;
-                // --- MODIFICACIÓN: Gestión de Globales ---
+                // --- Gestión de Globales ---
                 if (sim.n == 0 && niv > 0) { 
                     // Si es global (nivel 0) y estamos en una función (niv > 0):
                     // 1. Creamos una temporal local
@@ -771,7 +769,7 @@ opMul:     POR_ { $$ = EMULT; }
          ;
 
 opUna:     MAS_   { $$ = ESUM; }
-         | MENOS_ { $$ = ESIG; } // Aqui ponia EDIF
+         | MENOS_ { $$ = ESIG; } //ESIG en vez de EDIF
          | NOT_   { $$ = NOT_; }
          ;
 
